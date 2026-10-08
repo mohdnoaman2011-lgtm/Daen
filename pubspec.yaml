@@ -1,5 +1,5 @@
 name: daen
-description: A professional task manager built with Flutter.
+description: تطبيق دائن لإدارة الديون والدفعات.
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -7,11 +7,12 @@ environment:
   sdk: '>=3.0.0 <4.0.0'
 
 dependencies:
-  pdf: ^3.10.8
-  printing: ^5.12.0
   flutter:
     sdk: flutter
   shared_preferences: ^2.2.2
+  share_plus: ^7.2.2
+  pdf: ^3.10.8
+  printing: ^5.12.0
 
 flutter:
   uses-material-design: true
