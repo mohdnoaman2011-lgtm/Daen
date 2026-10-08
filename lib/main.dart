@@ -384,14 +384,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ]).toList(),
                   headerStyle: pw.TextStyle(font: fontBold, color: PdfColors.white),
                   headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0D6B5E)),
-                  pw.Table.fromTextArray(
-  context: context,
-  data: data,
-  cellAlignments: {
-    0: pw.Alignment.center,
-    1: pw.Alignment.center,
-  },
-)
+                  pw.Table.fromTextArray( context: context,data: data,cellAlignments: { 0: pw.Alignment.center,1: pw.Alignment.center,},)
                 if (namePays.isNotEmpty) ...[
                   pw.SizedBox(height: 16),
                   pw.Text('الدفعات:', style: pw.TextStyle(font: fontBold, fontSize: 14)),
@@ -407,8 +400,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     headerStyle: pw.TextStyle(font: fontBold, color: PdfColors.white),
                     headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF12907D)),
                     alignment: pw.Alignment.center,
-                  ),
-                ],
+                pw.Table.fromTextArray( context: context,data: data,cellAlignments: { 0: pw.Alignment.center,1: pw.Alignment.center,},)
                 pw.SizedBox(height: 20),
                 pw.Container(
                   padding: const pw.EdgeInsets.all(12),
