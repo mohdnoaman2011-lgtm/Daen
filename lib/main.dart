@@ -1,13 +1,17 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
 
 void main() {
   runApp(const DaenApp());
 }
 
 // -----------------------------------------------------------------------------
-// الألوان والأنماط الثابتة لتطابق تصميم CSS الخاص بالواجهة
+// الألوان الثابتة للتطبيق
 // -----------------------------------------------------------------------------
 class AppColors {
   static const Color brand = Color(0xFF0D6B5E);
@@ -174,7 +178,6 @@ class _HomeScreenState extends State<HomeScreen> {
   List<PaymentModel> pays = [];
   String? selectedCreditor;
 
-  // controllers
   final _dNameController = TextEditingController();
   final _pNameController = TextEditingController();
   final _pPriceController = TextEditingController();
@@ -192,7 +195,6 @@ class _HomeScreenState extends State<HomeScreen> {
     _payAmtController.addListener(() => setState(() {}));
   }
 
-  // --- إدارة الملاحظات والبيانات ---
   Future<void> _loadData() async {
     final prefs = await SharedPreferences.getInstance();
     final String? txStr = prefs.getString('pos_transactions');
@@ -251,7 +253,6 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- العمليات الرئيسية ---
   void _addPurchase() {
     final name = _dNameController.text.trim();
     final product = _pNameController.text.trim();
@@ -322,6 +323,131 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // --- ميزة مشاركة كشف الحساب المصغر ---
+  void _shareAccountSummary() {
+    if (selectedCreditor == null) {
+      _showToast('اختر دائناً أولاً', isErr: true);
+      return;
+    }
+    final name = selectedCreditor!;
+    final totals = getTotals(name);
+
+    final String text = "كشف حساب: $name\n"
+        "إجمالي المشتريات: ${totals['total']!.toStringAsFixed(2)}\n"
+        "المدفوع: ${totals['paid']!.toStringAsFixed(2)}\n"
+        "المتبقي: ${totals['rem']!.toStringAsFixed(2)}";
+
+    Share.share(text);
+  }
+
+  // --- ميزة طباعة وتصدير التقرير PDF ---
+  Future<void> _exportPdf() async {
+    if (selectedCreditor == null) {
+      _showToast('لا توجد بيانات للتصدير', isErr: true);
+      return;
+    }
+
+    final name = selectedCreditor!;
+    final nameTx = tx.where((t) => t.name.trim() == name).toList();
+    final namePays = pays.where((p) => p.name.trim() == name).toList();
+    final totals = getTotals(name);
+
+    final pdf = pw.Document();
+    final font = await PdfGoogleFonts.tajawalRegular();
+    final fontBold = await PdfGoogleFonts.tajawalBold();
+
+    pdf.addPage(
+      pw.Page(
+        pageFormat: PdfPageFormat.a4,
+        textDirection: pw.TextDirection.rtl,
+        build: (pw.Context ctx) {
+          return pw.Padding(
+            padding: const pw.EdgeInsets.all(24),
+            child: pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Center(
+                  child: pw.Text('📋 كشف حساب: $name', style: pw.TextStyle(font: fontBold, fontSize: 20)),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Text('المشتريات:', style: pw.TextStyle(font: fontBold, fontSize: 14)),
+                pw.SizedBox(height: 8),
+                pw.TableHelper.fromTextArray(
+                  font: font,
+                  headers: ['الشهر', 'المنتج', 'الكمية', 'السعر', 'الإجمالي'],
+                  data: nameTx.map((t) => [
+                    t.month,
+                    t.product,
+                    '${t.qty}',
+                    t.price.toStringAsFixed(2),
+                    (t.price * t.qty).toStringAsFixed(2)
+                  ]).toList(),
+                  headerStyle: pw.TextStyle(font: fontBold, color: PdfColors.white),
+                  headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF0D6B5E)),
+                  alignment: pw.Alignment.center,
+                ),
+                if (namePays.isNotEmpty) ...[
+                  pw.SizedBox(height: 16),
+                  pw.Text('الدفعات:', style: pw.TextStyle(font: fontBold, fontSize: 14)),
+                  pw.SizedBox(height: 8),
+                  pw.TableHelper.fromTextArray(
+                    font: font,
+                    headers: ['التاريخ', 'المبلغ', 'ملاحظة'],
+                    data: namePays.map((p) => [
+                      p.date,
+                      p.amount.toStringAsFixed(2),
+                      p.note.isEmpty ? '-' : p.note
+                    ]).toList(),
+                    headerStyle: pw.TextStyle(font: fontBold, color: PdfColors.white),
+                    headerDecoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF12907D)),
+                    alignment: pw.Alignment.center,
+                  ),
+                ],
+                pw.SizedBox(height: 20),
+                pw.Container(
+                  padding: const pw.EdgeInsets.all(12),
+                  decoration: pw.BoxDecoration(
+                    border: pw.Border.all(color: PdfColors.grey400),
+                    borderRadius: pw.BorderRadius.circular(8),
+                  ),
+                  child: pw.Column(
+                    children: [
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('إجمالي المشتريات:', style: pw.TextStyle(font: font)),
+                          pw.Text(totals['total']!.toStringAsFixed(2), style: pw.TextStyle(font: fontBold)),
+                        ],
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('إجمالي المدفوع:', style: pw.TextStyle(font: font)),
+                          pw.Text(totals['paid']!.toStringAsFixed(2), style: pw.TextStyle(font: fontBold)),
+                        ],
+                      ),
+                      pw.Divider(),
+                      pw.Row(
+                        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                        children: [
+                          pw.Text('المتبقي على الدائن:', style: pw.TextStyle(font: fontBold, fontSize: 14)),
+                          pw.Text(totals['rem']!.toStringAsFixed(2), style: pw.TextStyle(font: fontBold, fontSize: 14, color: PdfColors.red800)),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    await Printing.layoutPdf(onLayout: (PdfPageFormat format) async => pdf.save());
+  }
+
   void _wipeAllData() {
     showDialog(
       context: context,
@@ -357,7 +483,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final inkColor = isDark ? AppColors.inkDark : AppColors.inkLight;
     final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
-    // الإحصائيات العامة
     final allNames = names;
     final totalSum = tx.fold(0.0, (s, t) => s + (t.price * t.qty));
     final paidSum = pays.fold(0.0, (s, p) => s + p.amount);
@@ -373,15 +498,10 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Column(
                 children: [
-                  // Header
                   _buildHeader(isDark),
-
-                  // Stats Box
                   const SizedBox(height: 12),
                   _buildStatsGrid(allNames.length, totalSum, paidSum, remSum, cardBg, lineBg, mutedColor, softBg),
-
                   const SizedBox(height: 16),
-                  // Form 1: Buy Form
                   _buildCard(
                     title: '📝 تسجيل مشتريات',
                     cardBg: cardBg,
@@ -464,7 +584,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                   const SizedBox(height: 16),
-                  // Card 2: Account Details & Payment
                   _buildCard(
                     title: '👤 كشف حساب الدائن',
                     cardBg: cardBg,
@@ -505,7 +624,32 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildAccountStatement(selectedCreditor!, cardBg, lineBg, mutedColor, softBg),
                         ],
 
+                        // --- أزرار PDF والمشاركة وتفريغ البيانات ---
                         const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildButton(
+                                text: '📄 حفظ التقرير PDF',
+                                onPressed: _exportPdf,
+                                bgColor: softBg,
+                                textColor: AppColors.brand2,
+                                borderColor: lineBg,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _buildButton(
+                                text: '📤 مشاركة',
+                                onPressed: _shareAccountSummary,
+                                bgColor: softBg,
+                                textColor: AppColors.brand2,
+                                borderColor: lineBg,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
                         _buildButton(
                           text: '🗑️ تفريغ كل البيانات',
                           onPressed: _wipeAllData,
@@ -525,7 +669,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // --- عناصر الواجهة الفرعية (Widgets) ---
+  // --- عناصر الواجهة (Widgets) ---
   Widget _buildHeader(bool isDark) {
     return Container(
       width: double.infinity,
@@ -874,11 +1018,16 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildTable({required List<String> headers, required List<List<dynamic>> rows, required Color lineBg, required Color softBg}) {
     return Container(
-      decoration: BoxDecoration(border: Border.all(color: lineBg), borderRadius: BorderRadius.circular(14)),
+      decoration: BoxDecoration(
+        border: Border.all(color: lineBg),
+        borderRadius: BorderRadius.circular(14),
+      ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: Table(
-          border: TableBorder.symmetric(inside: BorderSide(color: lineBg),),
+          border: TableBorder(
+            horizontalInside: BorderSide(color: lineBg),
+          ),
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           children: [
             TableRow(
