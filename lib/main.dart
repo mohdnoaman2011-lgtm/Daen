@@ -373,7 +373,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 pw.Text('المشتريات:', style: pw.TextStyle(font: fontBold, fontSize: 14)),
                 pw.SizedBox(height: 8),
                 pw.TableHelper.fromTextArray(
-                  font: font,
+                  cellStyle: pw.TextStyle(font: font),headerStyle: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
                   headers: ['الشهر', 'المنتج', 'الكمية', 'السعر', 'الإجمالي'],
                   data: nameTx.map((t) => [
                     t.month,
@@ -391,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   pw.Text('الدفعات:', style: pw.TextStyle(font: fontBold, fontSize: 14)),
                   pw.SizedBox(height: 8),
                   pw.TableHelper.fromTextArray(
-                    font: font,
+                    cellStyle: pw.TextStyle(font: font),headerStyle: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
                     headers: ['التاريخ', 'المبلغ', 'ملاحظة'],
                     data: namePays.map((p) => [
                       p.date,
