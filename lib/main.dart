@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pdf/pdf.dart' as pw;
+import 'package:pdf/pdf.dart'; // تم تصحيح استيراد الحزمة بدون as pw لكي تعمل PdfPageFormat مباشرة
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -157,8 +157,8 @@ class _MainScreenState extends State<MainScreen> {
                           rec['status']?.toString() ?? 'مكتمل',
                         ]),
                   ],
-                  headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, color: pw.PdfColors.white),
-                  headerDecoration: const pw.BoxDecoration(color: pw.PdfColors.blue),
+                  headerStyle: pw.TextStyle(font: boldFont, fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+                  headerDecoration: const pw.BoxDecoration(color: PdfColors.blue),
                   cellStyle: pw.TextStyle(font: font),
                   cellAlignments: {
                     0: pw.Alignment.center,
