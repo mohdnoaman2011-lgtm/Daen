@@ -4,9 +4,6 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:excel/excel.dart' hide Border;
-import 'package:file_picker/file_picker.dart';
-import 'package:universal_html/html.dart' as html;
 import 'package:flutter/foundation.dart';
 
 void main() {
@@ -23,7 +20,7 @@ class MyApp extends StatelessWidget {
       title: 'إدارة الحسابات والصيانة',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        fontFamily: 'Cairo', // تأكد من توفر الخط أو استبداله بالافتراضي
+        fontFamily: 'Cairo',
       ),
       home: const MainScreen(),
     );
@@ -38,7 +35,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  // بيانات تجريبية وقوائم للتطبيق
   List<Map<String, dynamic>> maintenanceRecords = [];
   List<String> namePays = [];
   bool isAdmin = false;
@@ -49,7 +45,6 @@ class _MainScreenState extends State<MainScreen> {
     loadData();
   }
 
-  // تحميل البيانات المحفوظة
   Future<void> loadData() async {
     final prefs = await SharedPreferences.getInstance();
     final String? recordsString = prefs.getString('maintenance_records');
@@ -66,7 +61,6 @@ class _MainScreenState extends State<MainScreen> {
     }
   }
 
-  // حفظ البيانات
   Future<void> saveData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('maintenance_records', json.encode(maintenanceRecords));
@@ -133,11 +127,9 @@ class _MainScreenState extends State<MainScreen> {
     );
   }
 
-  // دالة إنشاء وتصدير تقرير الـ PDF بالشكل الصحيح والمحدث
   Future<void> _generatePdfReport(BuildContext context) async {
     final pdf = pw.Document();
     
-    // تحميل خط عربي مدعوم (مثل Cairo أو الحسابات الافتراضية)
     var font = await PdfGoogleFonts.cairoRegular();
     var boldFont = await PdfGoogleFonts.cairoBold();
 
@@ -156,7 +148,6 @@ class _MainScreenState extends State<MainScreen> {
                 ),
                 pw.SizedBox(height: 20),
                 
-                // الجدول الأول: سجلات الصيانة
                 pw.Table.fromTextArray(
                   data: <List<String>>[
                     <String>['العنوان', 'التفاصيل', 'الحالة'],
@@ -178,7 +169,6 @@ class _MainScreenState extends State<MainScreen> {
                 
                 pw.SizedBox(height: 20),
 
-                // عرض جدول إضافي إذا توفرت بيانات namePays
                 if (namePays.isNotEmpty) ...[
                   pw.Text(
                     'قائمة الأسماء والمدفوعات',
@@ -208,7 +198,6 @@ class _MainScreenState extends State<MainScreen> {
       ),
     );
 
-    // معاينة وطباعة أو مشاركة ملف الـ PDF
     await Printing.layoutPdf(
       onLayout: (PdfPageFormat format) async => pdf.save(),
     );
