@@ -878,7 +878,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(14),
         child: Table(
-          border: TableBorder.horizontalInside(color: lineBg),
+          border: TableBorder.symmetric(inside: BorderSide(color: lineBg),),
           defaultVerticalAlignment: TableCellVerticalAlignment.middle,
           children: [
             TableRow(
