@@ -361,7 +361,20 @@ class _HomeScreenState extends State<HomeScreen> {
         pageFormat: PdfPageFormat.a4,
         textDirection: pw.TextDirection.rtl,
         build: (pw.Context ctx) {
-          return pw.Padding(
+          return (pw.Table.fromTextArray(
+  context: context,
+  data: <List<String>>[
+    <String>['العنوان 1', 'العنوان 2'],
+    <String>['بيان 1', 'بيان 2'],
+  ],
+  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font),
+  cellStyle: pw.TextStyle(font: font),
+  cellAlignments: {
+    0: pw.Alignment.center,
+    1: pw.Alignment.center,
+  },
+)
+
             padding: const pw.EdgeInsets.all(24),
             child: pw.Column(
               crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -389,7 +402,20 @@ class _HomeScreenState extends State<HomeScreen> {
                   pw.SizedBox(height: 16),
                   pw.Text('الدفعات:', style: pw.TextStyle(font: fontBold, fontSize: 14)),
                   pw.SizedBox(height: 8),
-                  pw.TableHelper.fromTextArray(
+                  pw.Table.fromTextArray(
+  context: context,
+  data: <List<String>>[
+    <String>['العنوان 1', 'العنوان 2'],
+    <String>['بيان 1', 'بيان 2'],
+  ],
+  headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, font: font),
+  cellStyle: pw.TextStyle(font: font),
+  cellAlignments: {
+    0: pw.Alignment.center,
+    1: pw.Alignment.center,
+  },
+)
+
                     cellStyle: pw.TextStyle(font: font),headerStyle: pw.TextStyle(font: font, fontWeight: pw.FontWeight.bold),
                     headers: ['التاريخ', 'المبلغ', 'ملاحظة'],
                     data: namePays.map((p) => [
