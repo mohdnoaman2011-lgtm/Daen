@@ -214,9 +214,9 @@ class _MainScreenState extends State<MainScreen> {
     var cTx = transactions.where((t) => t['name'].toString().trim() == selectedCreditor).toList();
     var cPs = payments.where((p) => p['name'].toString().trim() == selectedCreditor).toList();
 
-    // تحميل الخط العربي المدعوم لضمان ظهور اللغة العربية في ملف الـ PDF تماماً مثل الملف المرفق
-    var font = await PdfGoogleFonts.cairoRegular();
-    var boldFont = await PdfGoogleFonts.cairoBold();
+    // تحميل وتضمين الخط العربي Cairo بشكل صحيح ليظهر النص بدقة
+    final font = await PdfGoogleFonts.cairoRegular();
+    final boldFont = await PdfGoogleFonts.cairoBold();
 
     pdf.addPage(
       pw.Page(
@@ -236,16 +236,14 @@ class _MainScreenState extends State<MainScreen> {
               pw.Table.fromTextArray(
                 headerAlignments: {0: pw.Alignment.center, 1: pw.Alignment.center, 2: pw.Alignment.center, 3: pw.Alignment.center, 4: pw.Alignment.center},
                 cellAlignments: {0: pw.Alignment.center, 1: pw.Alignment.center, 2: pw.Alignment.center, 3: pw.Alignment.center, 4: pw.Alignment.center},
-                data: [
-                  ['الشهر', 'المنتج', 'الكمية', 'السعر', 'الإجمالي'],
-                  ...cTx.map((t) => [
-                    t['month']?.toString() ?? '',
-                    t['product']?.toString() ?? '',
-                    t['qty']?.toString() ?? '',
-                    t['price']?.toString() ?? '',
-                    ((t['price'] ?? 0) * (t['qty'] ?? 1)).toStringAsFixed(2),
-                  ])
-                ],
+                headers: ['الشهر', 'المنتج', 'الكمية', 'السعر', 'الإجمالي'],
+                data: cTx.map((t) => [
+                  t['month']?.toString() ?? '',
+                  t['product']?.toString() ?? '',
+                  t['qty']?.toString() ?? '',
+                  t['price']?.toString() ?? '',
+                  ((t['price'] ?? 0) * (t['qty'] ?? 1)).toStringAsFixed(2),
+                ]).toList(),
                 headerStyle: pw.TextStyle(font: boldFont, fontSize: 11),
                 cellStyle: pw.TextStyle(font: font, fontSize: 10),
               ),
@@ -256,14 +254,12 @@ class _MainScreenState extends State<MainScreen> {
                 pw.Table.fromTextArray(
                   headerAlignments: {0: pw.Alignment.center, 1: pw.Alignment.center, 2: pw.Alignment.center},
                   cellAlignments: {0: pw.Alignment.center, 1: pw.Alignment.center, 2: pw.Alignment.center},
-                  data: [
-                    ['التاريخ', 'المبلغ', 'ملاحظة'],
-                    ...cPs.map((p) => [
-                      p['date']?.toString() ?? '',
-                      p['amount']?.toString() ?? '',
-                      p['note']?.toString().isEmpty ?? true ? '-' : p['note'].toString(),
-                    ])
-                  ],
+                  headers: ['التاريخ', 'المبلغ', 'ملاحظة'],
+                  data: cPs.map((p) => [
+                    p['date']?.toString() ?? '',
+                    p['amount']?.toString() ?? '',
+                    p['note']?.toString().isEmpty ?? true ? '-' : p['note'].toString(),
+                  ]).toList(),
                   headerStyle: pw.TextStyle(font: boldFont, fontSize: 11),
                   cellStyle: pw.TextStyle(font: font, fontSize: 10),
                 ),
@@ -337,525 +333,565 @@ class _MainScreenState extends State<MainScreen> {
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
-        body: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(
-              children: [
-                // Header (مماثل تماماً لتصميم الـ HTML والصورة)
-                Transform.translate(
-                  offset: const Offset(-14, 0),
-                  child: Container(
-                    width: MediaQuery.of(context).size.width,
-                    padding: const EdgeInsets.fromLTRB(22, 40, 22, 70),
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [Color(0xFF0A2E2C), Color(0xFF0D6B5E)],
-                        begin: Alignment.topRight,
-                        end: Alignment.bottomLeft,
-                      ),
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(28),
-                        bottomRight: Radius.circular(28),
-                      ),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left: 16,
-                          top: 10,
-                          child: InkWell(
-                            onTap: widget.onToggleTheme,
-                            child: Container(
-                              width: 44,
-                              height: 44,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.12),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: Colors.white.withOpacity(0.25)),
-                              ),
-                              child: Center(
-                                child: Text(widget.isDarkMode ? '☀️' : '🌙', style: const TextStyle(fontSize: 20)),
+        body: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: Column(
+                  children: [
+                    // Header مطابق تماماً لملف الـ HTML
+                    Transform.translate(
+                      offset: const Offset(-14, 0),
+                      child: Container(
+                        width: MediaQuery.of(context).size.width > 720 ? 720 : MediaQuery.of(context).size.width,
+                        padding: const EdgeInsets.fromLTRB(22, 26, 22, 70),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF0A2E2C), Color(0xFF0D6B5E)],
+                            begin: Alignment.topRight,
+                            end: Alignment.bottomLeft,
+                          ),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(28),
+                            bottomRight: Radius.circular(28),
+                          ),
+                        ),
+                        child: Stack(
+                          children: [
+                            Positioned(
+                              left: 16,
+                              top: 6,
+                              child: InkWell(
+                                onTap: widget.onToggleTheme,
+                                child: Container(
+                                  width: 44,
+                                  height: 44,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.12),
+                                    borderRadius: BorderRadius.circular(14),
+                                    border: Border.all(color: Colors.white.withOpacity(0.25)),
+                                  ),
+                                  child: Center(
+                                    child: Text(widget.isDarkMode ? '☀️' : '🌙', style: const TextStyle(fontSize: 20)),
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.only(top: 25),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 50,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE3A72F),
-                                  borderRadius: BorderRadius.circular(15),
-                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 4))],
-                                ),
-                                child: const Center(child: Text('📒', style: TextStyle(fontSize: 26))),
-                              ),
-                              const SizedBox(width: 14),
-                              const Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            Padding(
+                              padding: const EdgeInsets.only(top: 10),
+                              child: Row(
                                 children: [
-                                  Text('دائن', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
-                                  Text('سجّل المشتريات والدفعات واعرف المتبقي على كل دائن فوراً', style: TextStyle(color: Colors.white70, fontSize: 11)),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Stats Grid (إحصائيات الأربعة بطاقات)
-                Transform.translate(
-                  offset: const Offset(0, -45),
-                  child: GridView.count(
-                    crossAxisCount: 2,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 2.1,
-                    children: [
-                      statCard('👥', 'عدد الدائنين المسجلين', '${names.length}', null, false),
-                      statCard('🧾', 'إجمالي الديون', totalAll.toStringAsFixed(2), null, false),
-                      statCard('✅', 'المسدّد', paidAll.toStringAsFixed(2), const Color(0xFF1F9D5C), true),
-                      statCard('⏳', 'المتبقي', remAll.toStringAsFixed(2), const Color(0xFFC2492F), true),
-                    ],
-                  ),
-                ),
-
-                // تسجيل مشتريات
-                Transform.translate(
-                  offset: const Offset(0, -30),
-                  child: Column(
-                    children: [
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('📝 تسجيل مشتريات', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                              const Divider(height: 24),
-                              const Text('اسم الدائن', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                              const SizedBox(height: 6),
-                              TextField(
-                                controller: _nameController,
-                                decoration: InputDecoration(
-                                  hintText: 'اختر أو اكتب اسماً جديداً',
-                                  filled: true,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              const Text('المنتج', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                              const SizedBox(height: 6),
-                              TextField(
-                                controller: _productController,
-                                decoration: InputDecoration(
-                                  hintText: 'سكر، شاي، زيت...',
-                                  filled: true,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                ),
-                              ),
-                              const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('السعر', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                        const SizedBox(height: 6),
-                                        TextField(
-                                          controller: _priceController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: InputDecoration(
-                                            hintText: '0.00',
-                                            filled: true,
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                          ),
-                                        ),
-                                      ],
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE3A72F),
+                                      borderRadius: BorderRadius.circular(15),
+                                      boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 6, offset: Offset(0, 4))],
                                     ),
+                                    child: const Center(child: Text('📒', style: TextStyle(fontSize: 26))),
                                   ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text('الكمية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                        const SizedBox(height: 6),
-                                        TextField(
-                                          controller: _qtyController,
-                                          keyboardType: TextInputType.number,
-                                          decoration: InputDecoration(
-                                            filled: true,
-                                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 12),
-                              const Text('شهر الشراء', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                              const SizedBox(height: 6),
-                              DropdownButtonFormField<String>(
-                                value: selectedMonth,
-                                items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
-                                onChanged: (val) => setState(() => selectedMonth = val),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  onPressed: addTransaction,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0D6B5E),
-                                    padding: const EdgeInsets.symmetric(vertical: 14),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                                  ),
-                                  child: const Text('➕ إضافة إلى حساب الدائن', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // كشف حساب الدائن
-                      Card(
-                        elevation: 2,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                        child: Padding(
-                          padding: const EdgeInsets.all(18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text('👤 كشف حساب الدائن', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
-                              const Divider(height: 24),
-                              const Text('اختر الدائن', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
-                              const SizedBox(height: 6),
-                              DropdownButtonFormField<String>(
-                                value: names.contains(selectedCreditor) ? selectedCreditor : (names.isNotEmpty ? names.first : null),
-                                items: names.isNotEmpty 
-                                    ? names.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList()
-                                    : [const DropdownMenuItem(value: '', child: Text('لا يوجد دائنون بعد'))],
-                                onChanged: (val) => setState(() => selectedCreditor = val ?? ''),
-                                decoration: InputDecoration(
-                                  filled: true,
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                                ),
-                              ),
-                              const SizedBox(height: 15),
-
-                              if (selectedCreditor.isNotEmpty) ...[
-                                Container(
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1F9D5C).withOpacity(0.09),
-                                    border: Border.all(color: const Color(0xFF1F9D5C).withOpacity(0.25)),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: Column(
+                                  const SizedBox(width: 14),
+                                  const Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      const Text('💵 دفع جزء من المبلغ', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1F9D5C), fontSize: 15)),
-                                      const SizedBox(height: 10),
-                                      RichText(
-                                        text: TextSpan(
-                                          style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13),
+                                      Text('دائن', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w800)),
+                                      Text('سجّل المشتريات والدفعات واعرف المتبقي على كل دائن فوراً', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Stats Grid (البطاقات الأربعة)
+                    Transform.translate(
+                      offset: const Offset(0, -48),
+                      child: GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio: 2.15,
+                        children: [
+                          statCard('👥', 'عدد الدائنين المسجلين', '${names.length}', null, false),
+                          statCard('🧾', 'إجمالي الديون', totalAll.toStringAsFixed(2), null, false),
+                          statCard('✅', 'المسدّد', paidAll.toStringAsFixed(2), const Color(0xFF1F9D5C), true),
+                          statCard('⏳', 'المتبقي', remAll.toStringAsFixed(2), const Color(0xFFC2492F), true),
+                        ],
+                      ),
+                    ),
+
+                    // تسجيل مشتريات
+                    Transform.translate(
+                      offset: const Offset(0, -32),
+                      child: Column(
+                        children: [
+                          Card(
+                            elevation: 0,
+                            color: widget.isDarkMode ? const Color(0xFF12211F) : Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              side: const BorderSide(color: Color(0xFFDBE6E3)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(18),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('📝 تسجيل مشتريات', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    child: Divider(height: 1, color: Color(0xFFDBE6E3)),
+                                  ),
+                                  const Text('اسم الدائن', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _nameController,
+                                    decoration: InputDecoration(
+                                      hintText: 'اختر أو اكتب اسماً جديداً',
+                                      filled: true,
+                                      fillColor: const Color(0xFFEAF0EE),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  const Text('المنتج', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _productController,
+                                    decoration: InputDecoration(
+                                      hintText: 'سكر، شاي، زيت...',
+                                      filled: true,
+                                      fillColor: const Color(0xFFEAF0EE),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const TextSpan(text: 'المتبقي الحالي على '),
-                                            TextSpan(text: selectedCreditor, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                            const TextSpan(text: ': '),
-                                            TextSpan(text: remCreditor.toStringAsFixed(2), style: const TextStyle(color: Color(0xFFC2492F), fontWeight: FontWeight.bold)),
+                                            const Text('السعر', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                            const SizedBox(height: 6),
+                                            TextField(
+                                              controller: _priceController,
+                                              keyboardType: TextInputType.number,
+                                              decoration: InputDecoration(
+                                                hintText: '0.00',
+                                                filled: true,
+                                                fillColor: const Color(0xFFEAF0EE),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                const Text('المبلغ المدفوع', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                                const SizedBox(height: 4),
-                                                TextField(
-                                                  controller: _payAmtController,
-                                                  keyboardType: TextInputType.number,
-                                                  decoration: InputDecoration(
-                                                    hintText: '0.00',
-                                                    filled: true,
-                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                const Text('ملاحظة (اختياري)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.grey)),
-                                                const SizedBox(height: 4),
-                                                TextField(
-                                                  controller: _payNoteController,
-                                                  decoration: InputDecoration(
-                                                    hintText: 'دفعة نقدية...',
-                                                    filled: true,
-                                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          Expanded(
-                                            child: ElevatedButton(
-                                              onPressed: () {
-                                                double amt = double.tryParse(_payAmtController.text) ?? 0;
-                                                addPayment(amt, _payNoteController.text);
-                                                _payAmtController.clear();
-                                                _payNoteController.clear();
-                                              },
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor: const Color(0xFF1F9D5C),
-                                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            const Text('الكمية', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                            const SizedBox(height: 6),
+                                            TextField(
+                                              controller: _qtyController,
+                                              keyboardType: TextInputType.number,
+                                              decoration: InputDecoration(
+                                                filled: true,
+                                                fillColor: const Color(0xFFEAF0EE),
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
                                               ),
-                                              child: const Text('✔ تسجيل الدفعة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                                             ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Expanded(
-                                            child: OutlinedButton(
-                                              onPressed: () => addPayment(remCreditor, 'سداد كامل'),
-                                              style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                                              child: const Text('سداد المتبقي بالكامل', style: TextStyle(fontSize: 12)),
-                                            ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
                                     ],
                                   ),
-                                ),
-                                const SizedBox(height: 15),
-                              ],
-
-                              // جدول المشتريات والدفعات داخل كشف الحساب
-                              Center(child: Text('كشف حساب', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
-                              const SizedBox(height: 10),
-                              const Text('المشتريات', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                              const SizedBox(height: 6),
-                              SingleChildScrollView(
-                                scrollDirection: Axis.horizontal,
-                                child: DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('الشهر')),
-                                    DataColumn(label: Text('المنتج')),
-                                    DataColumn(label: Text('الكمية')),
-                                    DataColumn(label: Text('السعر')),
-                                    DataColumn(label: Text('الإجمالي')),
-                                    DataColumn(label: Text('حذف')),
-                                  ],
-                                  rows: cTx.isNotEmpty ? cTx.map((t) => DataRow(cells: [
-                                    DataCell(Text(t['month']?.toString() ?? '')),
-                                    DataCell(Text(t['product']?.toString() ?? '')),
-                                    DataCell(Text(t['qty']?.toString() ?? '')),
-                                    DataCell(Text(t['price']?.toString() ?? '')),
-                                    DataCell(Text(((t['price'] ?? 0) * (t['qty'] ?? 1)).toStringAsFixed(2))),
-                                    DataCell(IconButton(
-                                      icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                                      onPressed: () {
-                                        setState(() {
-                                          transactions.removeWhere((item) => item['id'] == t['id']);
-                                          saveData();
-                                        });
-                                      },
-                                    )),
-                                  ])).toList() : const [
-                                    DataRow(cells: [
-                                      DataCell(Text('')), DataCell(Text('')), DataCell(Text('أضف أول عملية شراء لعرض كشف الحساب')), DataCell(Text('')), DataCell(Text('')), DataCell(Text(''))
-                                    ])
-                                  ],
-                                ),
-                              ),
-
-                              if (cPs.isNotEmpty) ...[
-                                const SizedBox(height: 15),
-                                const Text('الدفعات', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-                                const SizedBox(height: 6),
-                                SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: DataTable(
-                                    columns: const [
-                                      DataColumn(label: Text('التاريخ')),
-                                      DataColumn(label: Text('المبلغ')),
-                                      DataColumn(label: Text('ملاحظة')),
-                                      DataColumn(label: Text('حذف')),
-                                    ],
-                                    rows: cPs.map((p) => DataRow(cells: [
-                                      DataCell(Text(p['date']?.toString() ?? '')),
-                                      DataCell(Text(p['amount']?.toString() ?? '', style: const TextStyle(color: Color(0xFF1F9D5C), fontWeight: FontWeight.bold))),
-                                      DataCell(Text(p['note']?.toString() ?? '-')),
-                                      DataCell(IconButton(
-                                        icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                                        onPressed: () {
-                                          setState(() {
-                                            payments.removeWhere((item) => item['id'] == p['id']);
-                                            saveData();
-                                          });
-                                        },
-                                      )),
-                                    ])).toList(),
-                                  ),
-                                ),
-                              ],
-
-                              const SizedBox(height: 15),
-
-                              // الملخص النهائي
-                              Container(
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFFDBE6E3)),
-                                ),
-                                child: Column(
-                                  children: [
-                                    sumRow('إجمالي المشتريات', totalCreditor.toStringAsFixed(2)),
-                                    sumRow('إجمالي المدفوع', paidCreditor.toStringAsFixed(2)),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(colors: [Color(0xFF0A2E2C), Color(0xFF0D6B5E)]),
-                                        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
-                                      ),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          const Text('المتبقي على الدائن', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
-                                          Text(remCreditor.toStringAsFixed(2), style: TextStyle(color: remCreditor == 0 ? const Color(0xFF8DF0B4) : const Color(0xFFFFD37A), fontWeight: FontWeight.w800, fontSize: 16)),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(height: 12),
-                              // شريط التقدم
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: LinearProgressIndicator(
-                                  value: progressRatio,
-                                  minHeight: 10,
-                                  backgroundColor: const Color(0xFFDBE6E3),
-                                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1F9D5C)),
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Center(
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: remCreditor == 0 && totalCreditor > 0 ? const Color(0xFFDCF3E6) : const Color(0xFFFBF0D6),
-                                    borderRadius: BorderRadius.circular(30),
-                                  ),
-                                  child: Text(
-                                    remCreditor == 0 && totalCreditor > 0 ? '✔ تم السداد بالكامل' : 'نسبة السداد ${(progressRatio * 100).round()}%',
-                                    style: TextStyle(
-                                      color: remCreditor == 0 && totalCreditor > 0 ? const Color(0xFF157A46) : const Color(0xFF8A6212),
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 12,
+                                  const SizedBox(height: 12),
+                                  const Text('شهر الشراء', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                  const SizedBox(height: 6),
+                                  DropdownButtonFormField<String>(
+                                    value: selectedMonth,
+                                    items: months.map((m) => DropdownMenuItem(value: m, child: Text(m))).toList(),
+                                    onChanged: (val) => setState(() => selectedMonth = val),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: const Color(0xFFEAF0EE),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
                                     ),
                                   ),
-                                ),
-                              ),
-
-                              const SizedBox(height: 20),
-
-                              // أزرار حفظ PDF ومشاركة
-                              Row(
-                                children: [
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: generatePdf,
-                                      icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF12907D)),
-                                      label: const Text('حفظ التقرير PDF', style: TextStyle(color: Color(0xFF12907D), fontWeight: FontWeight.bold)),
+                                  const SizedBox(height: 18),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton(
+                                      onPressed: addTransaction,
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFFEAF5F2),
-                                        elevation: 0,
+                                        backgroundColor: const Color(0xFF0D6B5E),
                                         padding: const EdgeInsets.symmetric(vertical: 13),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13), side: const BorderSide(color: Color(0xFFDBE6E3))),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                                        elevation: 8,
+                                        shadowColor: const Color(0xB20D6B5E),
                                       ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: ElevatedButton.icon(
-                                      onPressed: shareAccount,
-                                      icon: const Icon(Icons.share, color: Color(0xFF12907D)),
-                                      label: const Text('مشاركة', style: TextStyle(color: Color(0xFF12907D), fontWeight: FontWeight.bold)),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFFEAF5F2),
-                                        elevation: 0,
-                                        padding: const EdgeInsets.symmetric(vertical: 13),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13), side: const BorderSide(color: Color(0xFFDBE6E3))),
-                                      ),
+                                      child: const Text('➕ إضافة إلى حساب الدائن', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 10),
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      transactions.clear();
-                                      payments.clear();
-                                      saveData();
-                                    });
-                                    showToast('تم تفريغ البيانات', isError: true);
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: const Color(0xFFC2492F),
-                                    padding: const EdgeInsets.symmetric(vertical: 13),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
-                                    side: const BorderSide(color: Color(0xFFFBE6E0)),
-                                  ),
-                                  child: const Text('🗑️ تفريغ كل البيانات', style: TextStyle(fontWeight: FontWeight.bold)),
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
-                        ),
+
+                          const SizedBox(height: 16),
+
+                          // كشف حساب الدائن
+                          Card(
+                            elevation: 0,
+                            color: widget.isDarkMode ? const Color(0xFF12211F) : Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(18),
+                              side: const BorderSide(color: Color(0xFFDBE6E3)),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.all(18),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('👤 كشف حساب الدائن', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+                                  const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 12),
+                                    child: Divider(height: 1, color: Color(0xFFDBE6E3)),
+                                  ),
+                                  const Text('اختر الدائن', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                  const SizedBox(height: 6),
+                                  DropdownButtonFormField<String>(
+                                    value: names.contains(selectedCreditor) ? selectedCreditor : (names.isNotEmpty ? names.first : null),
+                                    items: names.isNotEmpty 
+                                        ? names.map((n) => DropdownMenuItem(value: n, child: Text(n))).toList()
+                                        : [const DropdownMenuItem(value: '', child: Text('لا يوجد دائنون بعد'))],
+                                    onChanged: (val) => setState(() => selectedCreditor = val ?? ''),
+                                    decoration: InputDecoration(
+                                      filled: true,
+                                      fillColor: const Color(0xFFEAF0EE),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 15),
+
+                                  if (selectedCreditor.isNotEmpty) ...[
+                                    Container(
+                                      padding: const EdgeInsets.all(14),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF1F9D5C).withOpacity(0.09),
+                                        border: Border.all(color: const Color(0xFF1F9D5C).withOpacity(0.25)),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text('💵 دفع جزء من المبلغ', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFF1F9D5C), fontSize: 15)),
+                                          const SizedBox(height: 10),
+                                          RichText(
+                                            text: TextSpan(
+                                              style: TextStyle(color: Theme.of(context).textTheme.bodyLarge?.color, fontSize: 13),
+                                              children: [
+                                                const TextSpan(text: 'المتبقي الحالي على '),
+                                                TextSpan(text: selectedCreditor, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                                const TextSpan(text: ': '),
+                                                TextSpan(text: remCreditor.toStringAsFixed(2), style: const TextStyle(color: Color(0xFFC2492F), fontWeight: FontWeight.bold)),
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text('المبلغ المدفوع', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                                    const SizedBox(height: 4),
+                                                    TextField(
+                                                      controller: _payAmtController,
+                                                      keyboardType: TextInputType.number,
+                                                      decoration: InputDecoration(
+                                                        hintText: '0.00',
+                                                        filled: true,
+                                                        fillColor: const Color(0xFFEAF0EE),
+                                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  children: [
+                                                    const Text('ملاحظة (اختياري)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF6A8280))),
+                                                    const SizedBox(height: 4),
+                                                    TextField(
+                                                      controller: _payNoteController,
+                                                      decoration: InputDecoration(
+                                                        hintText: 'دفعة نقدية...',
+                                                        filled: true,
+                                                        fillColor: const Color(0xFFEAF0EE),
+                                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFDBE6E3))),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          const SizedBox(height: 12),
+                                          Row(
+                                            children: [
+                                              Expanded(
+                                                child: ElevatedButton(
+                                                  onPressed: () {
+                                                    double amt = double.tryParse(_payAmtController.text) ?? 0;
+                                                    addPayment(amt, _payNoteController.text);
+                                                    _payAmtController.clear();
+                                                    _payNoteController.clear();
+                                                  },
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFF1F9D5C),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                  ),
+                                                  child: const Text('✔ تسجيل الدفعة', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: OutlinedButton(
+                                                  onPressed: () => addPayment(remCreditor, 'سداد كامل'),
+                                                  style: OutlinedButton.styleFrom(
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                                    side: const BorderSide(color: Color(0xFFDBE6E3)),
+                                                  ),
+                                                  child: const Text('سداد المتبقي بالكامل', style: TextStyle(fontSize: 11)),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 15),
+                                  ],
+
+                                  // تفاصيل الكشف وجداول المشتريات والدفعات
+                                  const Center(child: Text('كشف حساب', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16))),
+                                  const SizedBox(height: 10),
+                                  const Text('المشتريات', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                  const SizedBox(height: 6),
+                                  SingleChildScrollView(
+                                    scrollDirection: Axis.horizontal,
+                                    child: DataTable(
+                                      columns: const [
+                                        DataColumn(label: Text('الشهر')),
+                                        DataColumn(label: Text('المنتج')),
+                                        DataColumn(label: Text('الكمية')),
+                                        DataColumn(label: Text('السعر')),
+                                        DataColumn(label: Text('الإجمالي')),
+                                        DataColumn(label: Text('')),
+                                      ],
+                                      rows: cTx.isNotEmpty ? cTx.map((t) => DataRow(cells: [
+                                        DataCell(Text(t['month']?.toString() ?? '')),
+                                        DataCell(Text(t['product']?.toString() ?? '')),
+                                        DataCell(Text(t['qty']?.toString() ?? '')),
+                                        DataCell(Text(t['price']?.toString() ?? '')),
+                                        DataCell(Text(((t['price'] ?? 0) * (t['qty'] ?? 1)).toStringAsFixed(2))),
+                                        DataCell(IconButton(
+                                          icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                          onPressed: () {
+                                            setState(() {
+                                              transactions.removeWhere((item) => item['id'] == t['id']);
+                                              saveData();
+                                            });
+                                          },
+                                        )),
+                                      ])).toList() : const [
+                                        DataRow(cells: [
+                                          DataCell(Text('')), DataCell(Text('')), DataCell(Text('أضف أول عملية شراء لعرض كشف الحساب')), DataCell(Text('')), DataCell(Text('')), DataCell(Text(''))
+                                        ])
+                                      ],
+                                    ),
+                                  ),
+
+                                  if (cPs.isNotEmpty) ...[
+                                    const SizedBox(height: 15),
+                                    const Text('الدفعات', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                                    const SizedBox(height: 6),
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: DataTable(
+                                        columns: const [
+                                          DataColumn(label: Text('التاريخ')),
+                                          DataColumn(label: Text('المبلغ')),
+                                          DataColumn(label: Text('ملاحظة')),
+                                          DataColumn(label: Text('')),
+                                        ],
+                                        rows: cPs.map((p) => DataRow(cells: [
+                                          DataCell(Text(p['date']?.toString() ?? '')),
+                                          DataCell(Text(p['amount']?.toString() ?? '', style: const TextStyle(color: Color(0xFF1F9D5C), fontWeight: FontWeight.bold))),
+                                          DataCell(Text(p['note']?.toString() ?? '-')),
+                                          DataCell(IconButton(
+                                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
+                                            onPressed: () {
+                                              setState(() {
+                                                payments.removeWhere((item) => item['id'] == p['id']);
+                                                saveData();
+                                              });
+                                            },
+                                          )),
+                                        ])).toList(),
+                                      ),
+                                    ),
+                                  ],
+
+                                  const SizedBox(height: 15),
+
+                                  // الملخص النهائي
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(16),
+                                      border: Border.all(color: const Color(0xFFDBE6E3)),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        sumRow('إجمالي المشتريات', totalCreditor.toStringAsFixed(2)),
+                                        sumRow('إجمالي المدفوع', paidCreditor.toStringAsFixed(2)),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+                                          decoration: const BoxDecoration(
+                                            gradient: LinearGradient(colors: [Color(0xFF0A2E2C), Color(0xFF0D6B5E)]),
+                                            borderRadius: BorderRadius.only(bottomLeft: Radius.circular(15), bottomRight: Radius.circular(15)),
+                                          ),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              const Text('المتبقي على الدائن', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 16)),
+                                              Text(remCreditor.toStringAsFixed(2), style: TextStyle(color: remCreditor == 0 ? const Color(0xFF8DF0B4) : const Color(0xFFFFD37A), fontWeight: FontWeight.w800, fontSize: 16)),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 12),
+                                  // شريط التقدم
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: LinearProgressIndicator(
+                                      value: progressRatio,
+                                      minHeight: 10,
+                                      backgroundColor: const Color(0xFFDBE6E3),
+                                      valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF1F9D5C)),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: remCreditor == 0 && totalCreditor > 0 ? const Color(0xFFDCF3E6) : const Color(0xFFFBF0D6),
+                                        borderRadius: BorderRadius.circular(30),
+                                      ),
+                                      child: Text(
+                                        remCreditor == 0 && totalCreditor > 0 ? '✔ تم السداد بالكامل' : 'نسبة السداد ${(progressRatio * 100).round()}%',
+                                        style: TextStyle(
+                                          color: remCreditor == 0 && totalCreditor > 0 ? const Color(0xFF157A46) : const Color(0xFF8A6212),
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+
+                                  const SizedBox(height: 20),
+
+                                  // أزرار حفظ التقرير PDF ومشاركة بمقاسات مطابقة تماماً
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: generatePdf,
+                                          icon: const Icon(Icons.picture_as_pdf, color: Color(0xFF12907D), size: 20),
+                                          label: const Text('حفظ التقرير\nPDF', textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF12907D), fontWeight: FontWeight.bold, fontSize: 13)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFFEAF5F2),
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(vertical: 11),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13), side: const BorderSide(color: Color(0xFFDBE6E3))),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: ElevatedButton.icon(
+                                          onPressed: shareAccount,
+                                          icon: const Icon(Icons.share, color: Color(0xFF12907D), size: 20),
+                                          label: const Text('مشاركة', style: TextStyle(color: Color(0xFF12907D), fontWeight: FontWeight.bold, fontSize: 13)),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFFEAF5F2),
+                                            elevation: 0,
+                                            padding: const EdgeInsets.symmetric(vertical: 17),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13), side: const BorderSide(color: Color(0xFFDBE6E3))),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: OutlinedButton(
+                                      onPressed: () {
+                                        setState(() {
+                                          transactions.clear();
+                                          payments.clear();
+                                          saveData();
+                                        });
+                                        showToast('تم تفريغ البيانات', isError: true);
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFFC2492F),
+                                        padding: const EdgeInsets.symmetric(vertical: 13),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(13)),
+                                        side: const BorderSide(color: Color(0xFFFBE6E0)),
+                                      ),
+                                      child: const Text('🗑️ تفريغ كل البيانات', style: TextStyle(fontWeight: FontWeight.bold)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
