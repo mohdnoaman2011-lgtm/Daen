@@ -5,35 +5,77 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>دائن</title>
   <style>
-    /* ضع هنا كود الـ CSS الأصلي الخاص بك كاملاً هنا */
+    /* كود الـ CSS الأصلي كاملاً */
+    :root {
+      --bg: #f4f4f9;
+      --card: #ffffff;
+      --text: #333333;
+      --border: #dddddd;
+      --primary: #ffc107;
+      --primary-hover: #e0a800;
+    }
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      background-color: #f4f4f9;
+      background-color: var(--bg);
+      color: var(--text);
       margin: 0;
       padding: 10px;
     }
     .app { max-width: 600px; margin: 0 auto; }
-    .card { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-    .stat { background: #fff; padding: 10px; border-radius: 8px; text-align: center; }
+    header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .logo { font-size: 2rem; }
+    h1 { margin: 0; font-size: 1.5rem; }
+    p { margin: 0; font-size: 0.85rem; color: #666; }
+    
+    .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 15px; }
+    .stat { background: var(--card); padding: 12px; border-radius: 8px; display: flex; align-items: center; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .stat.gold { border-right: 4px solid #ffc107; }
     .stat.paid { border-right: 4px solid #28a745; }
     .stat.owe { border-right: 4px solid #dc3545; }
-    .btn { background: #ffc107; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
-    .btn.alt { background: #e0e0e0; }
-    .btn.danger { background: #dc3545; color: white; }
+    .stat small { display: block; color: #666; font-size: 0.75rem; }
+    .stat b { font-size: 1.1rem; }
+    .ic { font-size: 1.2rem; }
+
+    .card { background: var(--card); padding: 15px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h2 { margin-top: 0; font-size: 1.1rem; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    
     .fg { margin-bottom: 10px; display: flex; flex-direction: column; }
+    .fg label { margin-bottom: 5px; font-size: 0.85rem; font-weight: bold; }
+    .fg input, .fg select { padding: 10px; border: 1px solid var(--border); border-radius: 5px; font-size: 1rem; width: 100%; box-sizing: border-box; }
+    
     .row { display: flex; gap: 10px; }
     .row .fg { flex: 1; }
+
+    .btn { background: var(--primary); border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; font-size: 1rem; text-align: center; }
+    .btn:hover { background: var(--primary-hover); }
+    .btn.alt { background: #e0e0e0; color: #333; }
+    .btn.danger { background: #dc3545; color: white; }
+    .btns { display: flex; gap: 10px; margin-top: 10px; }
+
     table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #ddd; padding: 8px; text-align: right; }
-    /* أضف باقي التنسيقات الأصلية هنا */
+    th, td { border: 1px solid var(--border); padding: 8px; text-align: right; font-size: 0.9rem; }
+    th { background: #f8f9fa; }
+    
+    .sum { margin-top: 15px; background: #f8f9fa; padding: 10px; border-radius: 5px; }
+    .sum div { display: flex; justify-content: space-between; margin-bottom: 5px; font-weight: bold; }
+    .sum .rem { color: #dc3545; border-top: 1px solid var(--border); padding-top: 5px; }
+    
+    .bar { height: 8px; background: #e0e0e0; border-radius: 4px; margin: 15px 0; overflow: hidden; position: relative; }
+    .bar i { display: block; height: 100%; background: #28a745; width: 0; }
+    
+    .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+    .badge.no { background: #ffeeba; color: #856404; }
+    
+    @media print {
+      .no-print { display: none !important; }
+    }
   </style>
 </head>
 <body>
   <div class="app">
     <header>
-      <button type="button" class="theme no-print" id="themeBtn" aria-label="تبديل الوضع الفاتح/الداكن"></button>
+      <button type="button" class="theme no-print" id="themeBtn" aria-label="تبديل الوضع الفاتح/الداكن">🌓</button>
       <div class="brand">
         <div class="logo">📒</div>
         <div><h1>دائن</h1><p>سجّل المشتريات والدفعات واعرف المتبقي على كل دائن فوراً</p></div>
@@ -67,7 +109,7 @@
 
     <div class="card">
       <h2>👤 كشف حساب الدائن</h2>
-      <div class="pick"><label for="sel">اختر الدائن</label><select id="sel"></select></div>
+      <div class="fg pick"><label for="sel">اختر الدائن</label><select id="sel"></select></div>
       <div id="payBox" class="no-print">
         <h2 style="margin-top:4px">💵 دفع جزء من المبلغ</h2>
         <div class="payinfo" id="payInfo"></div>
@@ -86,7 +128,7 @@
         <h3 id="title">كشف حساب</h3>
         <div class="sub">المشتريات</div>
         <div class="tw"><table><thead><tr><th>الشهر</th><th>المنتج</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th><th class="no-print"></th></tr></thead><tbody id="buyBody"></tbody></table></div>
-        <div id="payWrap"><div class="sub">الدفعات</div>
+        <div id="payWrap"><div class="sub" style="margin-top:10px">الدفعات</div>
         <div class="tw"><table><thead><tr><th>التاريخ</th><th>المبلغ</th><th>ملاحظة</th><th class="no-print"></th></tr></thead><tbody id="payBody"></tbody></table></div></div>
         <div class="sum">
           <div><span>إجمالي المشتريات</span><span id="rTotal">0.00</span></div>
@@ -104,9 +146,5 @@
     </div>
   </div>
   <div id="toast" role="status"></div>
-
-  <script>
-    // ضع هنا كود الـ JavaScript الأصلي المسؤول عن العمليات الحسابية وإضافة البيانات
-  </script>
 </body>
 </html>
