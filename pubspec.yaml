@@ -8,6 +8,10 @@ environment:
 
 dependencies:
   flutter:
+uses-material-design: true
+  assets:
+    - assets/index.html
+
     sdk: flutter
   webview_flutter: ^4.10.0
   shared_preferences: ^2.5.6
