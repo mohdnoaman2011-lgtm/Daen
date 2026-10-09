@@ -1,10 +1,12 @@
 import 'dart:convert';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -126,8 +128,14 @@ class DaenApp extends StatelessWidget {
           ],
           theme: base.copyWith(
               textTheme: GoogleFonts.tajawalTextTheme(base.textTheme)),
-          builder: (c, w) =>
-              Directionality(textDirection: TextDirection.rtl, child: w!),
+          builder: (c, w) {
+            final mq = MediaQuery.of(c);
+            return MediaQuery(
+              data: mq.copyWith(
+                  textScaler: mq.textScaler.clamp(minScaleFactor: 0.9, maxScaleFactor: 1.1)),
+              child: Directionality(textDirection: TextDirection.rtl, child: w!),
+            );
+          },
           home: const Home(),
         );
       },
@@ -292,69 +300,134 @@ class _HomeState extends State<Home> {
     toast('تم خصم ${fmt(amount)} — المتبقي ${fmt(totals(n).rem)}');
   }
 
-  // ───────── PDF ─────────
+  // ───────── PDF (يُرسم بمحرك Flutter لضمان سلامة الحروف العربية) ─────────
+  Widget _report(String n, List<Tx> items, List<Pay> ps, double total, double paid, double rem) {
+    const ink = Color(0xFF12302F);
+    const muted = Color(0xFF6A8280);
+    const lineC = Color(0xFFDBE6E3);
+    TextStyle s(double z, {FontWeight w = FontWeight.w500, Color color = ink}) =>
+        GoogleFonts.tajawal(fontSize: z, fontWeight: w, color: color);
+    Widget tbl(List<String> heads, List<List<String>> rows) => Table(
+          border: TableBorder.all(color: lineC),
+          children: [
+            TableRow(
+              decoration: const BoxDecoration(color: Color(0xFFEAF5F2)),
+              children: heads
+                  .map((h) => Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Center(child: Text(h, style: s(12, w: FontWeight.w700, color: muted)))))
+                  .toList(),
+            ),
+            for (final r in rows)
+              TableRow(
+                children: r
+                    .map((v) => Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Center(child: Text(v, style: s(12)))))
+                    .toList(),
+              ),
+          ],
+        );
+    Widget sr(String a, String b, {bool last = false}) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          color: last ? P.brand : null,
+          child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+            Text(a, style: s(13, w: last ? FontWeight.w800 : FontWeight.w500, color: last ? Colors.white : ink)),
+            Text(b, style: s(13, w: last ? FontWeight.w800 : FontWeight.w500, color: last ? Colors.white : ink)),
+          ]),
+        );
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: Theme(
+        data: ThemeData.light(),
+        child: Material(
+          color: Colors.white,
+          child: SizedBox(
+            width: 595,
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Center(child: Text('كشف حساب: $n', style: s(20, w: FontWeight.w800))),
+                  const SizedBox(height: 16),
+                  Text('المشتريات', style: s(14, w: FontWeight.w800)),
+                  const SizedBox(height: 6),
+                  tbl(['الشهر', 'المنتج', 'الكمية', 'السعر', 'الإجمالي'],
+                      items.map((e) => [e.month, e.product, '${e.qty}', fmt(e.price), fmt(e.total)]).toList()),
+                  if (ps.isNotEmpty) ...[
+                    const SizedBox(height: 16),
+                    Text('الدفعات', style: s(14, w: FontWeight.w800)),
+                    const SizedBox(height: 6),
+                    tbl(['التاريخ', 'المبلغ', 'ملاحظة'],
+                        ps.map((e) => [e.date, fmt(e.amount), e.note.isEmpty ? '-' : e.note]).toList()),
+                  ],
+                  const SizedBox(height: 18),
+                  Container(
+                    decoration: BoxDecoration(border: Border.all(color: lineC)),
+                    child: Column(children: [
+                      sr('إجمالي المشتريات', fmt(total)),
+                      const Divider(height: 1, color: lineC),
+                      sr('إجمالي المدفوع', fmt(paid)),
+                      sr('المتبقي على الدائن', fmt(rem), last: true),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> exportPdf() async {
     final n = sel;
     if (n == null) return toast('لا توجد بيانات للتصدير', err: true);
-    final f = await PdfGoogleFonts.tajawalRegular();
-    final fb = await PdfGoogleFonts.tajawalBold();
-    final doc = pw.Document(theme: pw.ThemeData.withFont(base: f, bold: fb));
-    final items = tx.where((e) => e.name.trim() == n).toList()
-      ..sort((a, b) => months.indexOf(a.month) - months.indexOf(b.month));
-    final ps = pays.where((e) => e.name.trim() == n).toList();
-    final tt = totals(n);
-    doc.addPage(pw.MultiPage(
-      pageFormat: PdfPageFormat.a4,
-      textDirection: pw.TextDirection.rtl,
-      margin: const pw.EdgeInsets.all(28),
-      build: (_) => [
-        pw.Center(
-            child: pw.Text('كشف حساب: $n',
-                style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold))),
-        pw.SizedBox(height: 14),
-        pw.Text('المشتريات', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-        pw.SizedBox(height: 6),
-        pw.TableHelper.fromTextArray(
-          cellAlignment: pw.Alignment.center,
-          headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-          headers: ['الشهر', 'المنتج', 'الكمية', 'السعر', 'الإجمالي'],
-          data: items
-              .map((e) => [e.month, e.product, '${e.qty}', fmt(e.price), fmt(e.total)])
-              .toList(),
-        ),
-        if (ps.isNotEmpty) ...[
-          pw.SizedBox(height: 14),
-          pw.Text('الدفعات', style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
-          pw.SizedBox(height: 6),
-          pw.TableHelper.fromTextArray(
-            cellAlignment: pw.Alignment.center,
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey200),
-            headers: ['التاريخ', 'المبلغ', 'ملاحظة'],
-            data: ps.map((e) => [e.date, fmt(e.amount), e.note.isEmpty ? '-' : e.note]).toList(),
-          ),
-        ],
-        pw.SizedBox(height: 16),
-        pw.Container(
-          decoration: pw.BoxDecoration(border: pw.Border.all(color: PdfColors.grey400)),
-          child: pw.Column(children: [
-            _pr('إجمالي المشتريات', fmt(tt.total)),
-            _pr('إجمالي المدفوع', fmt(tt.paid)),
-            _pr('المتبقي على الدائن', fmt(tt.rem), bold: true, bg: PdfColors.grey200),
-          ]),
-        ),
-      ],
-    ));
-    await Printing.layoutPdf(name: 'كشف حساب $n', onLayout: (_) => doc.save());
-  }
-
-  pw.Widget _pr(String a, String b, {bool bold = false, PdfColor? bg}) => pw.Container(
-        color: bg,
-        padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: pw.Row(mainAxisAlignment: pw.MainAxisAlignment.spaceBetween, children: [
-          pw.Text(a, style: bold ? pw.TextStyle(fontWeight: pw.FontWeight.bold) : null),
-          pw.Text(b, style: bold ? pw.TextStyle(fontWeight: pw.FontWeight.bold) : null),
-        ]),
+    toast('جارٍ تجهيز التقرير...');
+    try {
+      final items = tx.where((e) => e.name.trim() == n).toList()
+        ..sort((a, b) => months.indexOf(a.month) - months.indexOf(b.month));
+      final ps = pays.where((e) => e.name.trim() == n).toList();
+      final tt = totals(n);
+      final bytes = await ScreenshotController().captureFromLongWidget(
+        _report(n, items, ps, tt.total, tt.paid, tt.rem),
+        context: context,
+        pixelRatio: 3,
+        delay: const Duration(milliseconds: 400),
+        constraints: const BoxConstraints(maxWidth: 595),
       );
+      final codec = await ui.instantiateImageCodec(bytes);
+      final img = (await codec.getNextFrame()).image;
+      const a4 = PdfPageFormat.a4;
+      final fmtPage = PdfPageFormat(a4.width, a4.height, marginAll: 0);
+      final sliceH = (img.width * a4.height / a4.width).floor();
+      final doc = pw.Document();
+      for (var y = 0; y < img.height; y += sliceH) {
+        final h = (img.height - y) < sliceH ? img.height - y : sliceH;
+        final rec = ui.PictureRecorder();
+        Canvas(rec).drawImageRect(
+          img,
+          Rect.fromLTWH(0, y.toDouble(), img.width.toDouble(), h.toDouble()),
+          Rect.fromLTWH(0, 0, img.width.toDouble(), h.toDouble()),
+          Paint()..filterQuality = FilterQuality.high,
+        );
+        final si = await rec.endRecording().toImage(img.width, h);
+        final png = (await si.toByteData(format: ui.ImageByteFormat.png))!.buffer.asUint8List();
+        final mi = pw.MemoryImage(png);
+        doc.addPage(pw.Page(
+          pageFormat: fmtPage,
+          build: (_) => pw.Align(
+              alignment: pw.Alignment.topCenter,
+              child: pw.Image(mi, width: a4.width)),
+        ));
+      }
+      await Printing.layoutPdf(name: 'كشف حساب $n', onLayout: (_) => doc.save());
+    } catch (e) {
+      toast('تعذّر إنشاء التقرير', err: true);
+    }
+  }
 
   Future<void> share() async {
     final n = sel;
@@ -489,9 +562,10 @@ class _HomeState extends State<Home> {
       alignment: Alignment.center,
       child: Text(ic, style: const TextStyle(fontSize: 19)),
     );
+    final al = wide ? Alignment.center : AlignmentDirectional.centerStart;
     final txt = [
-      Text(label, style: t(11.8, color: c.muted), textAlign: wide ? TextAlign.center : TextAlign.start),
-      Text(val, style: t(18.4, w: FontWeight.w800, color: vc)),
+      FittedBox(fit: BoxFit.scaleDown, alignment: al, child: Text(label, maxLines: 1, style: t(11.8, color: c.muted))),
+      FittedBox(fit: BoxFit.scaleDown, alignment: al, child: Text(val, maxLines: 1, style: t(18.4, w: FontWeight.w800, color: vc))),
     ];
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -568,7 +642,7 @@ class _HomeState extends State<Home> {
       stat('✅', 'المسدّد', fmt(PA), const Color(0xFFDCF3E6), P.paid, wide),
       stat('⏳', 'المتبقي', fmt(R), const Color(0xFFFBE6E0), P.owe, wide),
     ];
-    final statsH = wide ? 104.0 : 142.0;
+    final statsH = wide ? 110.0 : 150.0;
 
     return Scaffold(
       backgroundColor: c.bg,
@@ -650,7 +724,7 @@ class _HomeState extends State<Home> {
               child: InkWell(
                 borderRadius: BorderRadius.circular(14),
                 onTap: () {
-                  darkN.value = !darkN.value;
+                  setState(() => darkN.value = !darkN.value);
                   sp?.setString('theme', darkN.value ? 'dark' : 'light');
                 },
                 child: SizedBox(width: 44, height: 44, child: Center(child: Text(darkN.value ? '☀️' : '🌙', style: const TextStyle(fontSize: 20)))),
