@@ -175,6 +175,13 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    precacheImage(const AssetImage('assets/logo_full.png'), context);
+    precacheImage(const AssetImage('assets/logo_mark.png'), context);
+  }
+
+  @override
   void dispose() {
     _a.dispose();
     super.dispose();
@@ -225,31 +232,22 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
                       child: Transform.scale(
                         scale: sc,
                         child: Container(
-                          width: 110, height: 110,
+                          width: 236,
+                          padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
                           decoration: BoxDecoration(
-                            color: P.gold,
-                            borderRadius: BorderRadius.circular(32),
+                            color: const Color(0xFFFAFBFB),
+                            borderRadius: BorderRadius.circular(40),
                             boxShadow: [
-                              BoxShadow(color: P.gold.withOpacity(glow), blurRadius: 40, spreadRadius: 4),
-                              const BoxShadow(color: Color(0x40000000), blurRadius: 18, offset: Offset(0, 10)),
+                              BoxShadow(color: P.gold.withOpacity(glow), blurRadius: 44, spreadRadius: 4),
+                              const BoxShadow(color: Color(0x40000000), blurRadius: 20, offset: Offset(0, 10)),
                             ],
                           ),
-                          alignment: Alignment.center,
-                          child: const Text('📒', style: TextStyle(fontSize: 56)),
+                          child: Image.asset('assets/logo_full.png', fit: BoxFit.contain),
                         ),
                       ),
                     ),
                   ),
-                  const SizedBox(height: 26),
-                  Opacity(
-                    opacity: tIn.clamp(0.0, 1.0),
-                    child: Transform.translate(
-                      offset: Offset(0, (1 - tIn) * 18),
-                      child: Text('دائن',
-                          style: GoogleFonts.tajawal(fontSize: 42, fontWeight: FontWeight.w800, color: Colors.white)),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 30),
                   Opacity(
                     opacity: sIn.clamp(0.0, 1.0),
                     child: Text('إدارة الديون بكل سهولة',
@@ -1144,12 +1142,20 @@ class _HomeState extends State<Home> {
           Positioned(left: -62, top: -76 - top, child: Container(width: 190, height: 190, decoration: BoxDecoration(shape: BoxShape.circle, color: P.gold.withOpacity(.18)))),
           Positioned(left: 38, bottom: -96, child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(.07)))),
           Row(children: [
-            Container(
-              width: 50, height: 50,
-              decoration: BoxDecoration(color: P.gold, borderRadius: BorderRadius.circular(15), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 14, offset: Offset(0, 6))]),
-              alignment: Alignment.center,
-              child: Text(icon, style: const TextStyle(fontSize: 25)),
-            ),
+            if (icon == '📒')
+              Container(
+                width: 54, height: 54,
+                padding: const EdgeInsets.all(7),
+                decoration: BoxDecoration(color: const Color(0xFFFAFBFB), borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 14, offset: Offset(0, 6))]),
+                child: Image.asset('assets/logo_mark.png', fit: BoxFit.contain),
+              )
+            else
+              Container(
+                width: 50, height: 50,
+                decoration: BoxDecoration(color: P.gold, borderRadius: BorderRadius.circular(15), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 14, offset: Offset(0, 6))]),
+                alignment: Alignment.center,
+                child: Text(icon, style: const TextStyle(fontSize: 25)),
+              ),
             const SizedBox(width: 14),
             Expanded(
               child: Padding(
