@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'تطبيق دائن',
+      title: 'دائن - إدارة الديون',
       home: const CreditorAppScreen(),
     );
   }
@@ -34,7 +34,7 @@ class _CreditorAppScreenState extends State<CreditorAppScreen> {
     super.initState();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..loadFlutterAsset('assets/index.html'); // تحميل الملف الأصلي تماماً كما هو
+      ..loadFlutterAsset('assets/index.html'); // تحميل كودك الأصلي كاملاً من الأصول
   }
 
   @override
