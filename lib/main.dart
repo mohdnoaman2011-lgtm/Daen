@@ -190,7 +190,31 @@ class _HomeState extends State<Home> {
           .map((e) => Pay.fromJson(e))
           .toList();
     } catch (_) {}
+    // استعادة المسودة (ما كُتب في الخانات قبل إغلاق التطبيق)
+    dName.text = sp!.getString('draft_name') ?? '';
+    pName.text = sp!.getString('draft_product') ?? '';
+    pPrice.text = sp!.getString('draft_price') ?? '';
+    final q = sp!.getString('draft_qty') ?? '1';
+    pQty.text = q.isEmpty ? '1' : q;
+    final dm = sp!.getString('draft_month');
+    if (dm != null && months.contains(dm)) month = dm;
+    final ds = sp!.getString('draft_sel');
+    if (ds != null) sel = ds;
+    for (final ctl in [dName, pName, pPrice, pQty]) {
+      ctl.addListener(_saveDraft);
+    }
     setState(_fixSel);
+  }
+
+  void _saveDraft() {
+    final p = sp;
+    if (p == null) return;
+    p.setString('draft_name', dName.text);
+    p.setString('draft_product', pName.text);
+    p.setString('draft_price', pPrice.text);
+    p.setString('draft_qty', pQty.text);
+    p.setString('draft_month', month);
+    p.setString('draft_sel', sel ?? '');
   }
 
   void _persist() {
@@ -271,10 +295,12 @@ class _HomeState extends State<Home> {
     _persist();
     setState(() {
       sel = name;
+      dName.clear();
       pName.clear();
       pPrice.clear();
       pQty.text = '1';
     });
+    _saveDraft();
     FocusScope.of(context).unfocus();
     toast('✅ تم الحفظ بنجاح');
   }
@@ -803,28 +829,27 @@ class _HomeState extends State<Home> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
         labeled(
           'اسم الدائن',
-          LayoutBuilder(
-            builder: (_, k) => RawAutocomplete<String>(
-              textEditingController: dName,
-              focusNode: dFocus,
-              optionsBuilder: (v) => names.where((n) => n.contains(v.text.trim())),
-              fieldViewBuilder: (_, ctl, fn, __) => field(ctl, fn: fn, hint: 'اختر أو اكتب اسماً جديداً'),
-              optionsViewBuilder: (ctx, onSel, opts) => Align(
-                alignment: AlignmentDirectional.topStart,
-                child: Material(
-                  elevation: 4,
-                  color: c.card,
-                  borderRadius: BorderRadius.circular(12),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: 200, maxWidth: k.maxWidth),
-                    child: ListView(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      children: opts.map((o) => ListTile(dense: true, title: Text(o, style: t(15)), onTap: () => onSel(o))).toList(),
+          TextField(
+            controller: dName,
+            focusNode: dFocus,
+            style: t(15.4),
+            decoration: deco('اختر أو اكتب اسماً جديداً').copyWith(
+              suffixIcon: list.isEmpty
+                  ? null
+                  : PopupMenuButton<String>(
+                      icon: Icon(Icons.keyboard_arrow_down, color: c.muted),
+                      color: c.card,
+                      tooltip: '',
+                      onSelected: (v) {
+                        dName.value = TextEditingValue(
+                            text: v,
+                            selection: TextSelection.collapsed(offset: v.length));
+                      },
+                      itemBuilder: (_) => list
+                          .map((n) => PopupMenuItem<String>(
+                              value: n, child: Text(n, style: t(15))))
+                          .toList(),
                     ),
-                  ),
-                ),
-              ),
             ),
           ),
         ),
@@ -834,7 +859,10 @@ class _HomeState extends State<Home> {
           const SizedBox(width: 10),
           Expanded(child: labeled('الكمية', field(pQty, kb: TextInputType.number))),
         ]),
-        labeled('شهر الشراء', drop(month, months, (v) => setState(() => month = v ?? month))),
+        labeled('شهر الشراء', drop(month, months, (v) {
+          setState(() => month = v ?? month);
+          _saveDraft();
+        })),
         btn('➕ إضافة إلى حساب الدائن', addPurchase),
       ]),
     );
@@ -861,7 +889,10 @@ class _HomeState extends State<Home> {
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('اختر الدائن', style: t(12.8, w: FontWeight.w700, color: c.muted)),
             const SizedBox(height: 6),
-            drop(n, list, (v) => setState(() => sel = v), hint: 'لا يوجد دائنون بعد'),
+            drop(n, list, (v) {
+              setState(() => sel = v);
+              _saveDraft();
+            }, hint: 'لا يوجد دائنون بعد'),
           ]),
         ),
         if (n != null) _payBox(n, r.rem),
