@@ -157,6 +157,7 @@ class _HomeState extends State<Home> {
   List<Tx> tx = [];
   List<Pay> pays = [];
   String? sel;
+  int tab = 0;
   String month = months[DateTime.now().month - 1];
   final dName = TextEditingController(),
       pName = TextEditingController(),
@@ -716,13 +717,103 @@ class _HomeState extends State<Home> {
   @override
   Widget build(BuildContext context) {
     c = P(darkN.value);
-    final wide = MediaQuery.of(context).size.width >= 640;
+    final top = MediaQuery.of(context).padding.top;
     final list = names;
+    return PopScope(
+      canPop: tab == 0,
+      onPopInvoked: (didPop) {
+        if (!didPop) setState(() => tab = 0);
+      },
+      child: Scaffold(
+        backgroundColor: c.bg,
+        body: IndexedStack(index: tab, children: [
+          _homePage(list, top),
+          _addPage(list, top),
+          _accountPage(list, top),
+          _morePage(top),
+        ]),
+        bottomNavigationBar: _nav(),
+      ),
+    );
+  }
+
+  void _go(int i) {
+    FocusScope.of(context).unfocus();
+    setState(() => tab = i);
+  }
+
+  // ───────── شريط التنقل السفلي ─────────
+  Widget _nav() {
+    const items = [
+      ['🏠', 'الرئيسية'],
+      ['➕', 'إضافة'],
+      ['👤', 'كشف الحساب'],
+      ['⚙️', 'المزيد'],
+    ];
+    return Container(
+      decoration: BoxDecoration(
+        color: c.card,
+        border: Border(top: BorderSide(color: c.line)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x1A0A2E2C), blurRadius: 16, offset: Offset(0, -4)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+          child: Row(children: [
+            for (var i = 0; i < items.length; i++)
+              Expanded(
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () => _go(i),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(vertical: 7),
+                    decoration: BoxDecoration(
+                      color: tab == i ? c.soft : Colors.transparent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      Text(items[i][0], style: const TextStyle(fontSize: 21)),
+                      const SizedBox(height: 2),
+                      Text(items[i][1],
+                          style: t(11.5,
+                              w: tab == i ? FontWeight.w800 : FontWeight.w500,
+                              color: tab == i ? P.brand2 : c.muted)),
+                    ]),
+                  ),
+                ),
+              ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _scroll(List<Widget> kids) => SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 24),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Column(children: kids),
+          ),
+        ),
+      );
+
+  Widget _body(List<Widget> kids) => Padding(
+        padding: const EdgeInsets.fromLTRB(14, 16, 14, 0),
+        child: Column(children: kids),
+      );
+
+  // ───────── 1) الرئيسية ─────────
+  Widget _homePage(List<String> list, double top) {
+    final wide = MediaQuery.of(context).size.width >= 640;
     final T = tx.fold(0.0, (s, e) => s + e.total);
     final PA = pays.fold(0.0, (s, e) => s + e.amount);
     final R = list.fold(0.0, (s, n) => s + totals(n).rem);
-    final top = MediaQuery.of(context).padding.top;
-
     final stats = [
       stat('👥', 'عدد الدائنين المسجلين', '${list.length}', const Color(0xFFFBF0D6), null, wide),
       stat('🧾', 'إجمالي الديون', fmt(T), c.soft, null, wide),
@@ -730,57 +821,186 @@ class _HomeState extends State<Home> {
       stat('⏳', 'المتبقي', fmt(R), const Color(0xFFFBE6E0), P.owe, wide),
     ];
     final statsH = wide ? 110.0 : 150.0;
-
-    return Scaffold(
-      backgroundColor: c.bg,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 90),
-        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 720),
-            child: Column(children: [
-              _header(top),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: Column(children: [
-                  SizedBox(
-                    height: statsH - 48 + 16,
-                    child: Stack(clipBehavior: Clip.none, children: [
-                      Positioned(
-                        top: -48, left: 0, right: 0, height: statsH,
-                        child: wide
-                            ? Row(children: [
-                                for (var i = 0; i < 4; i++) ...[
-                                  if (i > 0) const SizedBox(width: 10),
-                                  Expanded(child: stats[i]),
-                                ]
-                              ])
-                            : Column(children: [
-                                Expanded(child: Row(children: [Expanded(child: stats[0]), const SizedBox(width: 10), Expanded(child: stats[1])])),
-                                const SizedBox(height: 10),
-                                Expanded(child: Row(children: [Expanded(child: stats[2]), const SizedBox(width: 10), Expanded(child: stats[3])])),
-                              ]),
-                      ),
-                    ]),
-                  ),
-                  _buyCard(list),
-                  _accountCard(list),
-                ]),
+    final sorted = [...list]..sort((a, b) => totals(b).rem.compareTo(totals(a).rem));
+    return _scroll([
+      _header(top, '📒', 'دائن', 'سجّل المشتريات والدفعات واعرف المتبقي على كل دائن فوراً', 70),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        child: Column(children: [
+          SizedBox(
+            height: statsH - 48 + 16,
+            child: Stack(clipBehavior: Clip.none, children: [
+              Positioned(
+                top: -48, left: 0, right: 0, height: statsH,
+                child: wide
+                    ? Row(children: [
+                        for (var i = 0; i < 4; i++) ...[
+                          if (i > 0) const SizedBox(width: 10),
+                          Expanded(child: stats[i]),
+                        ]
+                      ])
+                    : Column(children: [
+                        Expanded(child: Row(children: [Expanded(child: stats[0]), const SizedBox(width: 10), Expanded(child: stats[1])])),
+                        const SizedBox(height: 10),
+                        Expanded(child: Row(children: [Expanded(child: stats[2]), const SizedBox(width: 10), Expanded(child: stats[3])])),
+                      ]),
               ),
             ]),
           ),
-        ),
+          _creditorsCard(sorted),
+        ]),
+      ),
+    ]);
+  }
+
+  Widget _creditorsCard(List<String> sorted) {
+    if (sorted.isEmpty) {
+      return card(
+        title: '👥 الدائنون',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            child: Center(child: Text('لا يوجد دائنون بعد', style: t(14, color: c.muted))),
+          ),
+          btn('➕ تسجيل أول عملية شراء', () => _go(1)),
+        ]),
+      );
+    }
+    return card(
+      title: '👥 الدائنون (الأكبر دَيناً أولاً)',
+      child: Column(children: [
+        for (var i = 0; i < sorted.length; i++) ...[
+          if (i > 0) Divider(height: 1, color: c.line),
+          _creditorRow(sorted[i]),
+        ],
+      ]),
+    );
+  }
+
+  Widget _creditorRow(String n) {
+    final r = totals(n);
+    final done = r.rem == 0 && r.total > 0;
+    final pct = r.total > 0 ? (r.paid / r.total).clamp(0.0, 1.0) : 0.0;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        setState(() => sel = n);
+        _saveDraft();
+        _go(2);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 2),
+        child: Row(children: [
+          Container(
+            width: 42, height: 42,
+            decoration: BoxDecoration(color: c.soft, borderRadius: BorderRadius.circular(13)),
+            alignment: Alignment.center,
+            child: Text(n.isEmpty ? '؟' : n.characters.first,
+                style: t(18, w: FontWeight.w800, color: P.brand2)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(n, maxLines: 1, overflow: TextOverflow.ellipsis, style: t(15, w: FontWeight.w800)),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: LinearProgressIndicator(
+                  value: pct.toDouble(),
+                  minHeight: 6,
+                  backgroundColor: c.line,
+                  valueColor: const AlwaysStoppedAnimation(P.paid),
+                ),
+              ),
+            ]),
+          ),
+          const SizedBox(width: 12),
+          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+            Text(done ? '✔ مسدّد' : fmt(r.rem),
+                style: t(15, w: FontWeight.w800, color: done ? P.paid : P.owe)),
+            Text(done ? 'بالكامل' : 'المتبقي', style: t(11.5, color: c.muted)),
+          ]),
+          const SizedBox(width: 4),
+          Icon(Icons.chevron_left, color: c.muted),
+        ]),
       ),
     );
   }
 
-  Widget _header(double top) {
+  // ───────── 2) إضافة ─────────
+  Widget _addPage(List<String> list, double top) => _scroll([
+        _header(top, '📝', 'تسجيل مشتريات', 'أضف منتجاً إلى حساب دائن', 28),
+        _body([_buyCard(list)]),
+      ]);
+
+  // ───────── 3) كشف الحساب ─────────
+  Widget _accountPage(List<String> list, double top) => _scroll([
+        _header(top, '👤', 'كشف الحساب', 'راجع المشتريات وسجّل الدفعات', 28),
+        _body([_accountCard(list)]),
+      ]);
+
+  // ───────── 4) المزيد ─────────
+  Widget _morePage(double top) => _scroll([
+        _header(top, '⚙️', 'المزيد', 'النسخ الاحتياطي والإعدادات', 28),
+        _body([
+          card(
+            title: '💾 النسخ الاحتياطي',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('بياناتك محفوظة على هذا الهاتف فقط. احفظ نسخة احتياطية بشكل دوري وخزّنها خارج الهاتف.',
+                  style: t(13.6, color: c.muted, h: 1.7)),
+              const SizedBox(height: 14),
+              Row(children: [
+                Expanded(child: btn('💾 نسخة احتياطية', backup, kind: 'alt')),
+                const SizedBox(width: 8),
+                Expanded(child: btn('📥 استعادة', restore, kind: 'alt')),
+              ]),
+            ]),
+          ),
+          card(
+            title: '🎨 المظهر',
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('الوضع الداكن', style: t(15, w: FontWeight.w700)),
+              Switch(
+                value: darkN.value,
+                activeColor: P.brand2,
+                onChanged: (v) {
+                  setState(() => darkN.value = v);
+                  sp?.setString('theme', v ? 'dark' : 'light');
+                },
+              ),
+            ]),
+          ),
+          card(
+            title: '⚠️ منطقة الخطر',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+              Text('يحذف كل المشتريات والدفعات نهائياً. يُنصح بأخذ نسخة احتياطية أولاً.',
+                  style: t(13.6, color: c.muted, h: 1.7)),
+              const SizedBox(height: 14),
+              btn('🗑️ تفريغ كل البيانات', () async {
+                if (await confirm('⚠️ سيتم مسح جميع المشتريات والدفعات نهائياً. هل أنت متأكد؟')) {
+                  tx = [];
+                  pays = [];
+                  _persist();
+                  setState(_fixSel);
+                  toast('تم تفريغ البيانات', err: true);
+                }
+              }, kind: 'danger'),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Center(child: Text('دائن • الإصدار 1.0.0', style: t(12, color: c.muted))),
+          ),
+        ]),
+      ]);
+
+  // ───────── الترويسة ─────────
+  Widget _header(double top, String icon, String title, String sub, double bottom) {
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(bottom: Radius.circular(28)),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.fromLTRB(22, 26 + top, 22, 70),
+        padding: EdgeInsets.fromLTRB(22, 26 + top, 22, bottom),
         decoration: const BoxDecoration(
           gradient: LinearGradient(begin: Alignment.topRight, end: Alignment.bottomLeft, colors: [P.deep, P.brand]),
         ),
@@ -792,15 +1012,17 @@ class _HomeState extends State<Home> {
               width: 50, height: 50,
               decoration: BoxDecoration(color: P.gold, borderRadius: BorderRadius.circular(15), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 14, offset: Offset(0, 6))]),
               alignment: Alignment.center,
-              child: const Text('📒', style: TextStyle(fontSize: 25)),
+              child: Text(icon, style: const TextStyle(fontSize: 25)),
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('دائن', style: t(24, w: FontWeight.w800, color: Colors.white)),
-                Text('سجّل المشتريات والدفعات واعرف المتبقي على كل دائن فوراً',
-                    style: t(13.6, color: Colors.white.withOpacity(.8))),
-              ]),
+              child: Padding(
+                padding: const EdgeInsetsDirectional.only(end: 40),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  Text(title, style: t(24, w: FontWeight.w800, color: Colors.white)),
+                  Text(sub, style: t(13.6, color: Colors.white.withOpacity(.8))),
+                ]),
+              ),
             ),
           ]),
           Positioned(
@@ -994,22 +1216,6 @@ class _HomeState extends State<Home> {
           const SizedBox(width: 8),
           Expanded(child: btn('📤 مشاركة', share, kind: 'alt')),
         ]),
-        const SizedBox(height: 8),
-        Row(children: [
-          Expanded(child: btn('💾 نسخة احتياطية', backup, kind: 'alt')),
-          const SizedBox(width: 8),
-          Expanded(child: btn('📥 استعادة', restore, kind: 'alt')),
-        ]),
-        const SizedBox(height: 8),
-        btn('🗑️ تفريغ كل البيانات', () async {
-          if (await confirm('⚠️ سيتم مسح جميع المشتريات والدفعات نهائياً. هل أنت متأكد؟')) {
-            tx = [];
-            pays = [];
-            _persist();
-            setState(_fixSel);
-            toast('تم تفريغ البيانات', err: true);
-          }
-        }, kind: 'danger'),
       ]),
     );
   }
