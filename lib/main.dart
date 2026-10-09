@@ -1,10 +1,13 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:path_provider/path_provider.dart';
 import 'package:printing/printing.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
@@ -426,6 +429,64 @@ class _HomeState extends State<Home> {
       await Printing.layoutPdf(name: 'كشف حساب $n', onLayout: (_) => doc.save());
     } catch (e) {
       toast('تعذّر إنشاء التقرير', err: true);
+    }
+  }
+
+  // ───────── النسخ الاحتياطي والاستعادة ─────────
+  Future<void> backup() async {
+    try {
+      final d = DateTime.now();
+      final stamp =
+          '${d.year}${d.month.toString().padLeft(2, '0')}${d.day.toString().padLeft(2, '0')}';
+      final dir = await getTemporaryDirectory();
+      final f = File('${dir.path}/daen_backup_$stamp.json');
+      await f.writeAsString(jsonEncode({
+        'app': 'daen',
+        'version': 1,
+        'transactions': tx.map((e) => e.toJson()).toList(),
+        'payments': pays.map((e) => e.toJson()).toList(),
+      }));
+      await Share.shareXFiles([XFile(f.path)], text: 'نسخة احتياطية - دائن');
+    } catch (_) {
+      toast('تعذّر إنشاء النسخة الاحتياطية', err: true);
+    }
+  }
+
+  Future<void> restore() async {
+    try {
+      final r = await FilePicker.platform.pickFiles(type: FileType.any, withData: true);
+      if (r == null || r.files.isEmpty) return;
+      final pf = r.files.single;
+      final bytes = pf.bytes ?? await File(pf.path!).readAsBytes();
+      final m = jsonDecode(utf8.decode(bytes));
+      if (m is! Map || m['app'] != 'daen') {
+        return toast('الملف ليس نسخة احتياطية صحيحة', err: true);
+      }
+      final nt = (m['transactions'] as List).map((e) => Tx.fromJson(e)).toList();
+      final np = (m['payments'] as List).map((e) => Pay.fromJson(e)).toList();
+      if (!await confirm(
+          'استعادة ${nt.length} عملية شراء و${np.length} دفعة؟\nتُضاف السجلات غير الموجودة فقط ولا يُحذف شيء.')) {
+        return;
+      }
+      final ti = tx.map((e) => e.id).toSet(), pi = pays.map((e) => e.id).toSet();
+      var added = 0;
+      for (final e in nt) {
+        if (ti.add(e.id)) {
+          tx.add(e);
+          added++;
+        }
+      }
+      for (final e in np) {
+        if (pi.add(e.id)) {
+          pays.add(e);
+          added++;
+        }
+      }
+      _persist();
+      setState(_fixSel);
+      toast('✅ تمت الاستعادة: $added سجل جديد');
+    } catch (_) {
+      toast('تعذّر قراءة الملف', err: true);
     }
   }
 
@@ -901,6 +962,12 @@ class _HomeState extends State<Home> {
           Expanded(child: btn('📄 حفظ التقرير PDF', exportPdf, kind: 'alt')),
           const SizedBox(width: 8),
           Expanded(child: btn('📤 مشاركة', share, kind: 'alt')),
+        ]),
+        const SizedBox(height: 8),
+        Row(children: [
+          Expanded(child: btn('💾 نسخة احتياطية', backup, kind: 'alt')),
+          const SizedBox(width: 8),
+          Expanded(child: btn('📥 استعادة', restore, kind: 'alt')),
         ]),
         const SizedBox(height: 8),
         btn('🗑️ تفريغ كل البيانات', () async {
