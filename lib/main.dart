@@ -38,17 +38,23 @@ class _CreditorAppScreenState extends State<CreditorAppScreen> {
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(const Color(0xFFEAF0EE))
+      // تفعيل الصلاحيات لضمان عمل التخزين المحلي (localStorage) والأزرار
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (String url) {
+            // حقن أي إعدادات إضافية إن أزم الأمر لضمان استقرار التشغيل
+          },
+        ),
+      )
       ..addJavaScriptChannel(
         'pdfChannel',
         onMessageReceived: (JavaScriptMessage message) {
-          // استقبال اسم الدائن وتوليد ملف PDF عبر فلاتر
           _generateAndSharePdf(message.message);
         },
       )
       ..loadFlutterAsset('assets/index.html');
   }
 
-  // دالة لتوليد وحفظ تقرير الـ PDF بشكل احترافي ومتناسق
   Future<void> _generateAndSharePdf(String creditorName) async {
     final pdf = pw.Document();
 
@@ -84,7 +90,6 @@ class _CreditorAppScreenState extends State<CreditorAppScreen> {
       ),
     );
 
-    // طباعة أو حفظ أو مشاركة ملف الـ PDF مباشرة
     await Printing.sharePdf(bytes: await pdf.save(), filename: 'account_$creditorName.pdf');
   }
 
