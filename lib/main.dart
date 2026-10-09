@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -139,9 +140,144 @@ class DaenApp extends StatelessWidget {
               child: Directionality(textDirection: TextDirection.rtl, child: w!),
             );
           },
-          home: const Home(),
+          home: const Splash(),
         );
       },
+    );
+  }
+}
+
+// ───────────────────────── شاشة البداية ─────────────────────────
+class Splash extends StatefulWidget {
+  const Splash({super.key});
+  @override
+  State<Splash> createState() => _SplashState();
+}
+
+class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
+  late final AnimationController _a;
+
+  @override
+  void initState() {
+    super.initState();
+    _a = AnimationController(vsync: this, duration: const Duration(milliseconds: 2800))
+      ..forward().whenComplete(_next);
+  }
+
+  void _next() {
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(PageRouteBuilder(
+      transitionDuration: const Duration(milliseconds: 500),
+      pageBuilder: (_, __, ___) => const Home(),
+      transitionsBuilder: (_, anim, __, child) =>
+          FadeTransition(opacity: anim, child: child),
+    ));
+  }
+
+  @override
+  void dispose() {
+    _a.dispose();
+    super.dispose();
+  }
+
+  double _seg(double a, double b, Curve c) =>
+      c.transform(((_a.value - a) / (b - a)).clamp(0.0, 1.0));
+
+  @override
+  Widget build(BuildContext context) {
+    final bottom = MediaQuery.of(context).padding.bottom;
+    return Scaffold(
+      backgroundColor: P.deep,
+      body: AnimatedBuilder(
+        animation: _a,
+        builder: (_, __) {
+          final sc = _seg(0, .45, Curves.elasticOut);
+          final rot = (1 - _seg(0, .45, Curves.easeOutBack)) * -0.5;
+          final tIn = _seg(.35, .65, Curves.easeOutCubic);
+          final sIn = _seg(.5, .8, Curves.easeOut);
+          final pr = _seg(.15, .95, Curves.easeInOut);
+          final float = math.sin(_a.value * math.pi * 4) * 4;
+          final glow = .25 + .2 * (math.sin(_a.value * math.pi * 6) + 1) / 2;
+          return Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                  begin: Alignment.topRight,
+                  end: Alignment.bottomLeft,
+                  colors: [P.deep, P.brand]),
+            ),
+            child: Stack(children: [
+              Positioned(
+                  left: -70, top: -70,
+                  child: Container(width: 240, height: 240,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: P.gold.withOpacity(.18)))),
+              Positioned(
+                  right: -50, bottom: -60,
+                  child: Container(width: 200, height: 200,
+                      decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(.07)))),
+              Center(
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Transform.translate(
+                    offset: Offset(0, float),
+                    child: Transform.rotate(
+                      angle: rot,
+                      child: Transform.scale(
+                        scale: sc,
+                        child: Container(
+                          width: 110, height: 110,
+                          decoration: BoxDecoration(
+                            color: P.gold,
+                            borderRadius: BorderRadius.circular(32),
+                            boxShadow: [
+                              BoxShadow(color: P.gold.withOpacity(glow), blurRadius: 40, spreadRadius: 4),
+                              const BoxShadow(color: Color(0x40000000), blurRadius: 18, offset: Offset(0, 10)),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: const Text('📒', style: TextStyle(fontSize: 56)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 26),
+                  Opacity(
+                    opacity: tIn.clamp(0.0, 1.0),
+                    child: Transform.translate(
+                      offset: Offset(0, (1 - tIn) * 18),
+                      child: Text('دائن',
+                          style: GoogleFonts.tajawal(fontSize: 42, fontWeight: FontWeight.w800, color: Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Opacity(
+                    opacity: sIn.clamp(0.0, 1.0),
+                    child: Text('إدارة الديون بكل سهولة',
+                        style: GoogleFonts.tajawal(fontSize: 15, color: Colors.white.withOpacity(.8))),
+                  ),
+                ]),
+              ),
+              Positioned(
+                left: 0, right: 0, bottom: 70 + bottom,
+                child: Center(
+                  child: SizedBox(
+                    width: 140,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(4),
+                      child: LinearProgressIndicator(
+                        value: pr,
+                        minHeight: 4,
+                        backgroundColor: Colors.white.withOpacity(.15),
+                        valueColor: const AlwaysStoppedAnimation(P.gold),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ]),
+          );
+        },
+      ),
     );
   }
 }
