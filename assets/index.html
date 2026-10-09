@@ -148,7 +148,7 @@ tbody td{border-top:1px solid var(--line)}
 window.addEventListener('error',e=>{try{toast('خطأ: '+e.message,1)}catch(_){}});
 const MONTHS=["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
 const g=id=>document.getElementById(id);
-const num=v=>{const t=String(v).replace(/[٠-٩]/g,d=>d.charCodeAt(0)-1632).replace(/[۰-۹]/g,d=>d.charCodeAt(0)-1776).replace(/[٫,،]/g,'.').replace(/[^0-9.]/g,'');return parseFloat(t)};
+const num=v=>{const t=String(v).replace(/[٠-٩]/g,d=>d.charCodeAt(0)-1632).replace(/[۰-۹]/g,d=>d.charCodeAt(0)-1776).replace(/[٫,গুলো]/g,'.').replace(/[^0-9.]/g,'');return parseFloat(t)};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,6);
 const fmt=n=>(Math.round(n*100)/100).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -158,110 +158,4 @@ const root=document.documentElement,tb=g('themeBtn');
 let theme='light';
 try{theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light')}catch(e){}
 function setTheme(t){theme=t;root.setAttribute('data-theme',t);tb.textContent=t==='dark'?'☀️':'🌙';tb.title=t==='dark'?'الوضع الفاتح':'الوضع الداكن';try{localStorage.setItem('theme',t)}catch(e){}}
-tb.addEventListener('click',()=>setTheme(theme==='dark'?'light':'dark'));
-setTheme(theme);
-let tx=load('pos_transactions').map(t=>({...t,id:t.id||uid()}));
-let pays=load('pos_payments');
-const persist=()=>{save('pos_transactions',tx);save('pos_payments',pays)};
-MONTHS.forEach(m=>g('pMonth').add(new Option(m,m)));
-g('pMonth').value=MONTHS[new Date().getMonth()];
-function toast(msg,err){const t=g('toast');t.textContent=msg;t.className='show'+(err?' err':'');clearTimeout(t._h);t._h=setTimeout(()=>t.className='',2500)}
-const names=()=>[...new Set([...tx,...pays].map(i=>i.name.trim()))];
-const totals=n=>{
-  const total=tx.filter(t=>t.name.trim()===n).reduce((s,t)=>s+t.price*t.qty,0);
-  const paid=pays.filter(p=>p.name.trim()===n).reduce((s,p)=>s+p.amount,0);
-  return{total,paid,rem:Math.max(0,Math.round((total-paid)*100)/100)};
-};
-function refresh(keep){
-  const list=names(), cur=keep||g('sel').value;
-  g('dList').innerHTML=list.map(n=>`<option value="${esc(n)}">`).join('');
-  g('sel').innerHTML=list.length?list.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join(''):'<option value="">لا يوجد دائنون بعد</option>';
-  if(list.includes(cur))g('sel').value=cur;
-  const T=tx.reduce((s,t)=>s+t.price*t.qty,0),P=pays.reduce((s,p)=>s+p.amount,0);
-  g('sCount').textContent=list.length;
-  g('sTotal').textContent=fmt(T);g('sPaid').textContent=fmt(P);g('sRem').textContent=fmt(list.reduce((s,n)=>s+totals(n).rem,0));
-  render();
-}
-function payInfo(){
-  const n=g('sel').value;if(!n){g('payInfo').innerHTML='';return}
-  const{rem}=totals(n),v=num(g('payAmt').value),ok=v>0;
-  g('payInfo').innerHTML=`المتبقي الحالي على <b>${esc(n)}</b>: <b class="a">${fmt(rem)}</b>`+(ok?`<br>بعد دفع ${fmt(v)} يصبح المتبقي: <b class="b">${fmt(Math.max(0,rem-v))}</b>`+(v>rem+0.001?' <span class="a">(المبلغ أكبر من المتبقي)</span>':''):'');
-}
-g('payAmt').addEventListener('input',payInfo);
-function render(){
-  const n=g('sel').value;
-  g('payBox').style.display=n?'':'none';
-  if(!n){
-    g('title').textContent='كشف حساب';
-    g('buyBody').innerHTML='<tr><td colspan="6" class="empty">أضف أول عملية شراء لعرض كشف الحساب</td></tr>';
-    g('payWrap').style.display='none';
-    ['rTotal','rPaid','rRem'].forEach(i=>g(i).textContent='0.00');
-    g('bar').style.width='0';g('badge').textContent='';return;
-  }
-  g('title').textContent='📋 كشف حساب: '+n;
-  const items=tx.filter(t=>t.name.trim()===n).sort((a,b)=>MONTHS.indexOf(a.month)-MONTHS.indexOf(b.month));
-  g('buyBody').innerHTML=items.length?items.map(t=>`<tr><td><b>${esc(t.month)}</b></td><td>${esc(t.product)}</td><td>${t.qty}</td><td>${fmt(t.price)}</td><td><b>${fmt(t.price*t.qty)}</b></td><td class="no-print"><button class="del" data-t="${t.id}" aria-label="حذف">🗑️</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">لا توجد مشتريات</td></tr>';
-  const ps=pays.filter(p=>p.name.trim()===n);
-  g('payWrap').style.display=ps.length?'':'none';
-  g('payBody').innerHTML=ps.map(p=>`<tr><td>${esc(p.date)}</td><td><b style="color:var(--paid)">${fmt(p.amount)}</b></td><td>${esc(p.note||'-')}</td><td class="no-print"><button class="del" data-p="${p.id}" aria-label="حذف">🗑️</button></td></tr>`).join('');
-  const{total,paid,rem}=totals(n);
-  g('rTotal').textContent=fmt(total);g('rPaid').textContent=fmt(paid);g('rRem').textContent=fmt(rem);
-  g('remRow').classList.toggle('zero',rem===0);
-  payInfo();
-  g('bar').style.width=(total?Math.min(100,paid/total*100):0)+'%';
-  const b=g('badge');b.className='badge '+(rem===0&&total>0?'ok':'no');
-  b.textContent=rem===0&&total>0?'✔ تم السداد بالكامل':`نسبة السداد ${total?Math.round(paid/total*100):0}%`;
-}
-g('buyForm').addEventListener('submit',e=>{
-  e.preventDefault();
-  const name=g('dName').value.trim(),product=g('pName').value.trim(),price=num(g('pPrice').value),qty=Math.round(num(g('pQty').value));
-  if(!name)return toast('اكتب اسم الدائن',1);
-  if(!product)return toast('اكتب اسم المنتج',1);
-  if(!(price>0))return toast('أدخل سعراً صحيحاً',1);
-  if(!(qty>=1))return toast('أدخل كمية صحيحة',1);
-  tx.push({id:uid(),name,product,price,qty,month:g('pMonth').value});
-  persist();refresh(name);g('sel').value=name;render();
-  toast('✅ تم الحفظ بنجاح');
-  g('pName').value='';g('pPrice').value='';g('pQty').value='1';
-});
-function addPayment(amount,note){
-  const n=g('sel').value,{rem}=totals(n);
-  if(!(amount>0))return toast('أدخل مبلغاً صحيحاً',1);
-  if(rem===0)return toast('لا يوجد مبلغ متبقٍّ على هذا الدائن',1);
-  if(amount>rem+0.001)return toast(`المبلغ أكبر من المتبقي (${fmt(rem)})`,1);
-  pays.push({id:uid(),name:n,amount,note,date:new Date().toLocaleDateString('en-GB')});
-  if(totals(n).rem===0){
-    tx=tx.filter(t=>t.name.trim()!==n);pays=pays.filter(p=>p.name.trim()!==n);
-    persist();refresh();toast(`✅ تم سداد كامل المبلغ وحذف «${n}» من السجلات`);return;
-  }
-  persist();refresh(n);toast(`تم خصم ${fmt(amount)} — المتبقي ${fmt(totals(n).rem)}`);
-}
-g('payForm').addEventListener('submit',e=>{
-  e.preventDefault();
-  addPayment(num(g('payAmt').value),g('payNote').value.trim());
-  g('payAmt').value='';g('payNote').value='';payInfo();
-});
-g('payAll').addEventListener('click',()=>{const r=totals(g('sel').value).rem;if(r>0&&confirm(`تسجيل سداد كامل بمبلغ ${fmt(r)}؟`))addPayment(r,'سداد كامل')});
-g('sel').addEventListener('change',render);
-document.addEventListener('click',e=>{
-  const b=e.target.closest('.del');if(!b)return;
-  if(!confirm('هل تريد حذف هذا السجل؟'))return;
-  if(b.dataset.t)tx=tx.filter(t=>t.id!==b.dataset.t);
-  if(b.dataset.p)pays=pays.filter(p=>p.id!==b.dataset.p);
-  const n=g('sel').value;persist();refresh(n);toast('تم الحذف',1);
-});
-g('btnPdf').addEventListener('click',()=>{g('sel').value?window.print():toast('لا توجد بيانات للتصدير',1)});
-g('btnShare').addEventListener('click',async()=>{
-  const n=g('sel').value;if(!n)return toast('اختر دائناً أولاً',1);
-  const{total,paid,rem}=totals(n);
-  const text=`كشف حساب: ${n}\nإجمالي المشتريات: ${fmt(total)}\nالمدفوع: ${fmt(paid)}\nالمتبقي: ${fmt(rem)}`;
-  try{if(navigator.share)await navigator.share({text});else{await navigator.clipboard.writeText(text);toast('تم نسخ الملخص')}}catch(e){}
-});
-g('btnWipe').addEventListener('click',()=>{
-  if(confirm('⚠️ سيتم مسح جميع المشتريات والدفعات نهائياً. هل أنت متأكد؟')){tx=[];pays=[];persist();refresh();toast('تم تفريغ البيانات',1)}
-});
-refresh();
-})();
-</script>
-</body>
-</html>
+tb.addEventListener('click',()=>setTheme(theme==='
