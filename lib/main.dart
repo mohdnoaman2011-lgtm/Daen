@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
+import 'logo_data.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pdf/pdf.dart';
@@ -95,6 +96,7 @@ String fmt(double n) {
 }
 
 final darkN = ValueNotifier<bool>(false);
+final _logoBytes = base64Decode(kLogoB64);
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -177,8 +179,6 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    precacheImage(const AssetImage('assets/logo_full.png'), context);
-    precacheImage(const AssetImage('assets/logo_mark.png'), context);
   }
 
   @override
@@ -242,7 +242,7 @@ class _SplashState extends State<Splash> with SingleTickerProviderStateMixin {
                               const BoxShadow(color: Color(0x40000000), blurRadius: 20, offset: Offset(0, 10)),
                             ],
                           ),
-                          child: Image.asset('assets/logo_full.png', fit: BoxFit.contain),
+                          child: Image.memory(_logoBytes, fit: BoxFit.contain, gaplessPlayback: true),
                         ),
                       ),
                     ),
@@ -1142,20 +1142,12 @@ class _HomeState extends State<Home> {
           Positioned(left: -62, top: -76 - top, child: Container(width: 190, height: 190, decoration: BoxDecoration(shape: BoxShape.circle, color: P.gold.withOpacity(.18)))),
           Positioned(left: 38, bottom: -96, child: Container(width: 150, height: 150, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(.07)))),
           Row(children: [
-            if (icon == '📒')
-              Container(
-                width: 54, height: 54,
-                padding: const EdgeInsets.all(7),
-                decoration: BoxDecoration(color: const Color(0xFFFAFBFB), borderRadius: BorderRadius.circular(16), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 14, offset: Offset(0, 6))]),
-                child: Image.asset('assets/logo_mark.png', fit: BoxFit.contain),
-              )
-            else
-              Container(
-                width: 50, height: 50,
-                decoration: BoxDecoration(color: P.gold, borderRadius: BorderRadius.circular(15), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 14, offset: Offset(0, 6))]),
-                alignment: Alignment.center,
-                child: Text(icon, style: const TextStyle(fontSize: 25)),
-              ),
+            Container(
+              width: 50, height: 50,
+              decoration: BoxDecoration(color: P.gold, borderRadius: BorderRadius.circular(15), boxShadow: const [BoxShadow(color: Color(0x40000000), blurRadius: 14, offset: Offset(0, 6))]),
+              alignment: Alignment.center,
+              child: Text(icon, style: const TextStyle(fontSize: 25)),
+            ),
             const SizedBox(width: 14),
             Expanded(
               child: Padding(
